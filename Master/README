@@ -1,0 +1,147 @@
+IMPORTANT INFORMATION
+
+This tool uses a development version of the DeryaSE Engine. You are strongly adviced NOT to use it for other porpuses other than running this tool, as it has not been tested for wider use.
+For the same reason, this you are advised to use this tool under Linux, as it might not even compile properly on other operating systems.
+
+BUILDING UNDER LINUX
+
+Unpack and build the DeryaSE rel 58 (development version) included.  To do this
+type the following commands:
+
+gzip -cd deryaSE_sources_rel_58.tgz | tar -xv
+cd deryaSE_sources_rel_58/Engine
+make
+./builder.exe
+
+Now install the engine with the following commands:
+
+cd ../Deploy/EngineLinux
+./deryaSE_installer_rel_58.bin --local
+
+You will have to accept the Apache licence terms: answer 'Y' if you are willing to accept the Apache Licence,
+and 'P' to proceed to installation.
+
+
+Once the engine is installed, build the simulation program.
+There are different versions of the executable.  To run the program to make forecast straight away, type the following commands
+cd ../../../CoV/Italy/Scenarios/Master
+
+
+FORECASTING:
+
+To build forecasting runs, just type
+
+make
+
+This will take several minutes to complete, so relax and take a cup of tea or coffee. 
+It will build two versions: the first is a version that only generates the mobility
+data needed to move individuals around.  The second will perform the actual calculations.
+
+If you prefer to build the two version separately, type:
+
+make write
+make read
+
+To run a set of 100 sims just type
+python3 multirun.py
+
+The python script may be modified to increase the number of runs at will.
+
+If on a cluster, you can adapt the submission 'script.sh' to your needs.
+
+
+
+FITTING:
+
+To build a fitting version, type:
+
+make fit
+
+This will build a version able to fit to data of incidence and deaths.  If data on hospitalization and/or icu are available you can
+use one of the following three commands:
+
+make fit_hosp
+make fit_icu
+make fit_hosp_icu
+
+that will build a version able to additionally fit to that data.
+
+
+
+MODIFYING THE MODEL
+
+To select one of the available countries (other than Kenya),  modify the file 'Makefile' as follows.
+To change the country to Italy (for example), edit the file and change all occurrences of 
+
+'--define COUNTRY=KENYA'  to  '--define COUNTRY=ITALY'
+
+or any other country included.
+
+
+
+IF YOUR COUNTRY OF INTEREST IS NOT INCLUDED
+
+For countries not included, there are several steps you need to take to simulate.
+First you need to build an appropriate data directory structure for the new country.  For sake of simplicity,
+you can follow the structure used for other countries.  Suppose you want to study the spread in Atlantis, than you will need three pieces of information.
+First, a gridded map (downloadable from the WorldPop database), second age-mixing information (from the Prem paper supplementary material), third
+information on human mobility (in the form of ....).
+you may
+build the following directory tree:
+Atlantis/Maps
+Atlantis/Contacts
+Atlantis/Mobility
+Atlantis/Scenarios
+
+First, take the 'Kenya-setup.cpp' file and copy it to a new file 'Newcountry-setup.cpp' where Newcountry will be the name of your country of interest.
+Modify the file 'lse-fitting-base.cpp' to include the country by modifying the code as:
+
+#define  KENYA 1
+#define  ITALY 2
+
+#ifndef  COUNTRY
+#error   COUNTRY is not defined.  Use '--define COUNTRY=XXX'  where  XXX is an implemented country.
+#error   Currently implemented countries are: KENYA and ITALY.
+#else
+#	if COUNTRY == ITALY
+#		include "Italy-setup.cpp"
+#	elif COUNTRY == KENYA
+#		include "Kenya-setup.cpp"
+#	else
+#		error Unrecognized name for COUNTRY.
+#	endif
+#endif
+
+
+to
+
+#define  KENYA 1
+#define  ITALY 2
+#define  NEWCOUNTRY 3
+
+#ifndef  COUNTRY
+#error   COUNTRY is not defined.  Use '--define COUNTRY=XXX'  where  XXX is an implemented country.
+#error   Currently implemented countries are: KENYA and ITALY.
+#else
+#	if COUNTRY == ITALY
+#		include "Italy-setup.cpp"
+#	elif COUNTRY == KENYA
+#		include "Kenya-setup.cpp"
+#	elif COUNTRY == NEWCOUNTRY
+#		include "Newcountry-setup.cpp"
+#	else
+#		error Unrecognized name for COUNTRY.
+#	endif
+#endif
+
+
+where again NEWCOUNTRY is the name of your country of interest.
+
+
+Now modify the 'Newcountry-setup.cpp' file to your needs.
+
+
+
+MODIFYING A COUNTRY SETUP:
+
+

@@ -1,0 +1,51 @@
+COUNTRY := Italy 
+OUTPUT  := ../OutItaly
+CWD := $(shell pwd)
+
+all:
+	make prepare
+	make write
+	make read
+	make fits
+
+prepare:
+	\rm -rvf ${OUTPUT}
+	\rm -f runderyaSE*
+
+write:
+	g++ -c SplineInterpolator.cpp
+	g++ -c Policy.cpp
+	python3 generate.py ${COUNTRY} Write > CoV.lse
+	deryaSE --no-eventTrees --no-eventReordering --define COUNTRY=${COUNTRY} --compopts -I${HOME}/lib/include --linkopts ${CWD}/Policy.o,${CWD}/SplineInterpolator.o CoV.lse
+	mkdir -p ${OUTPUT}
+	mkdir -p ${OUTPUT}/Base
+	mv runderyaSE runderyaSEwrite
+	mv runderyaSEwrite ${OUTPUT}/Base
+
+read:
+	g++ -c SplineInterpolator.cpp
+	g++ -c Policy.cpp
+	python3 generate.py ${COUNTRY} Read > CoV.lse
+	deryaSE --no-eventTrees --no-eventReordering --define COUNTRY=${COUNTRY} --compopts -I${HOME}/lib/include --linkopts ${CWD}/Policy.o,${CWD}/SplineInterpolator.o,-L${HOME}/lib CoV.lse
+	mkdir -p ${OUTPUT}
+	mkdir -p ${OUTPUT}/Runs
+	mv runderyaSE ${OUTPUT}/Runs/runderyaSEread
+	cp multirun.py ${OUTPUT}/
+	touch ${OUTPUT}/Runs/EXEC
+
+fits:
+	g++ -c SplineInterpolator.cpp
+	g++ -c Policy.cpp
+	python3 generate.py ${COUNTRY} Read > CoV.lse
+	deryaSE --no-eventTrees --no-eventReordering --define COUNTRY=${COUNTRY} --define FITTING --compopts -I${HOME}/lib/include --linkopts ${CWD}/Policy.o,${CWD}/SplineInterpolator.o,-L${HOME}/lib CoV.lse
+	mkdir -p ${OUTPUT}
+	mkdir -p ${OUTPUT}/Fits
+	mv runderyaSE ${OUTPUT}/Fits/runderyaSEfit
+	cp fitting.py ${OUTPUT}/
+
+clean:
+	\rm -f CoV.lse
+	\rm -f deryaSE.log
+	\rm -f *.o
+	\rm -rvf __pycache__
+
