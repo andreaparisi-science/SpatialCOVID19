@@ -1,0 +1,67 @@
+IMPORTANT INFORMATION
+
+This tool uses a development version of the DeryaSE Engine. You are strongly adviced NOT to use it for other porpuses other than running this tool, as it has not been tested for wider use.
+For the same reason, you are advised to use this tool under Linux, as it might not even compile properly on other operating systems.
+
+
+REQUIREMENTS:
+
+- A complete gnu C++ compiler
+- The MPI library installed
+- TIFFLib installed
+- A python interpreter
+- For data analysis, the R interpreter
+
+
+INSTALLING
+
+The installer will download required data from the WorldPop database.
+Data for one country could range within 5-10Gb.
+Downloading might take a long time.
+
+- Edit the install.sh file and modify the following parameters:
+  CORES: the number of cores used by each simulation.
+  GRIDRES: the resolution in km.
+  COUNTRY: the name of the country of interest.
+  OUTDIR: name of the directory where to store results:
+          this will be a sub directory of the Output directory.
+
+- Run the installer with
+  bash install.sh
+
+
+
+
+
+FORECASTING
+
+To build forecasting runs, just type
+
+make
+
+This will take several minutes to complete, so relax and take a cup of tea or coffee. 
+It will build two versions: the first is a version that only generates the mobility
+data needed to move individuals around.  The second will perform the actual calculations.
+
+If you prefer to build the two version separately, type:
+
+make write
+make read
+
+To run a set of 100 sims just type
+python3 multirun.py
+
+The python script may be modified to increase the number of runs at will.
+
+If on a cluster, you can adapt the submission 'script.sh' to your needs.
+
+
+
+
+
+FITTING
+
+xxxx
+
+
+

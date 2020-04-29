@@ -11,12 +11,13 @@ void assignPreferredLocations();
 void storeIndividualData( const char * );
 
 enum {METHOD_CPC = 1, METHOD_DISTANCE = 2, METHOD_NORMDIST = 3};
-constexpr int METHOD = METHOD_DISTANCE;
+constexpr int METHOD = METHOD_CPC;
 constexpr double NR = 0.2;
 constexpr double minLim = 90.0;
 constexpr double delta  = 0.25;
 constexpr double TIMEFRAME = 1.0;
-constexpr double REL_ERROR = 1.e-4;
+constexpr double REL_ERROR = 1.e-2;
+
 
 class MobData {
 public:
@@ -537,7 +538,6 @@ void  analyzeTripDistribution()  {
 
 
 
-
 void  accessCycle( int status )  {
 	static  double phi = 0.5*(1.0+std::sqrt(5.));
 	double  optimalVal, optimalPar, sum;
@@ -557,7 +557,7 @@ void  accessCycle( int status )  {
 				strgroups += std::to_string(jj);
 			}
 			//analyzeTripDistribution();
-			loadAscFile("../Italy_5km_ids.asc", popMap);
+			loadAscFile( std::string("../Italy_") + std::to_string(GRIDRES) + "km_ids.asc", popMap);
 			loadStoreFile("storage", popMap);
 			groups = buildGroups(strgroups);
 
@@ -597,7 +597,7 @@ void  accessCycle( int status )  {
 //					std::cout << "*** Current error is [" << err << "], higher than the target [" << 1.e-3 << "]\n";
 //				}
 
-			buildMobility(searcher.getParamsMean());
+//			buildMobility(searcher.getParamsMean());
 //			buildHistograms(searcher.getParamsMean(), delta);
 //			}
 
@@ -611,6 +611,7 @@ void  accessCycle( int status )  {
 			break;
 		case CYCLE_PRE:
 			simStatus.preventOutputmapFrame();
+			simStatus.preventOutputlineFrame(0);
 			break;
 		case CYCLE_POST:
 			break;

@@ -1,7 +1,3 @@
-CORES:=12
-GRIDRES:=5
-COUNTRY:=Italy
-OUTDIR:=OutItaly
 OUTPUT  := ../Output/${OUTDIR}
 CWD := $(shell pwd)
 

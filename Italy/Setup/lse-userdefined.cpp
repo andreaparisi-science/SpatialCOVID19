@@ -14,6 +14,8 @@ void  accessCycle( int status )  {
 		case CYCLE_EVAL:
 			break;
 		case CYCLE_PRE:
+			simStatus.preventOutputmapFrame();
+			simStatus.preventOutputlineFrame(0);
 			break;
 		case CYCLE_POST:
 			break;
@@ -81,7 +83,7 @@ void  transformAgeGroupData()  {
 		}
 	}
 
-	int delta = 50;
+	int delta = 10*GRIDRES;
 	int xsize = data.ncols / delta + (data.ncols % delta == 0 ? 0 : 1);
 	int ysize = data.nrows / delta + (data.nrows % delta == 0 ? 0 : 1);
 	ageSizes.resize( nAgeGroups, 0 );
@@ -110,7 +112,7 @@ void  transformAgeGroupData()  {
 		}
 	}
 
-	filename = "Italy_5km.asc";
+	filename = std::string("Italy_") + std::to_string(GRIDRES) + "km.asc";
 	std::ofstream handler = std::ofstream(filename.c_str());
 	handler << "ncols\t" << xsize << "\n";
 	handler << "nrows\t" << ysize << "\n";
@@ -128,7 +130,7 @@ void  transformAgeGroupData()  {
 	handler.close();
 
 	for (int aa = 0; aa < nAgeGroups; aa++)  {
-		filename = "Italy_5km_" + std::to_string(aa) + ".dat";
+		filename = std::string("Italy_") + std::to_string(GRIDRES) + "km_" + std::to_string(aa) + ".dat";
 		std::ofstream handler = std::ofstream(filename.c_str());
 		for (int yy = ysize-1; yy >= 0; yy--)  {
 			for (int xx = 0; xx < xsize; xx++)  {
@@ -145,7 +147,7 @@ void  transformAgeGroupData()  {
 	}
 
 	for (int aa = 0; aa < nAgeGroups; aa++)  {
-		filename = "Italy_5km_" + std::to_string(aa) + ".asc";
+		filename = std::string("Italy_") + std::to_string(GRIDRES) + "km_" + std::to_string(aa) + ".asc";
 		std::ofstream handler = std::ofstream(filename.c_str());
 		handler << "ncols\t" << xsize << "\n";
 		handler << "nrows\t" << ysize << "\n";
@@ -168,7 +170,7 @@ void  transformAgeGroupData()  {
 	}
 
 	{
-		filename = "Italy_stats.dat";
+		filename = std::string("Italy_") + std::to_string(GRIDRES) + "km_stats.dat";
 		std::ofstream handler = std::ofstream(filename.c_str());
 		for (int aa = 0; aa < nAgeGroups; aa++)  {
 			handler << 5*aa << " " << 5*aa+4 << " " << ageSizes[aa] << "\n";

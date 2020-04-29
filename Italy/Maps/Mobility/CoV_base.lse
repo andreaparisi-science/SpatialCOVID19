@@ -1,16 +1,3 @@
-GENERAL:
-	Partfile		"../../Setup/Italy_5km-012.ppm"
-	Locations		50
-	Readinit		Write
-	Storefile		"storage"
-	ReduceFactor	1
-	Simlength		10
-	IndivPrefLocs	0
-	IndivHasData	0
-	AccessCycle		1
-
-POPULATIONS:
-	Default	"../../Setup/Italy_5km.asc"	None	RadiationNorm	0.05
 
 CLASSES:
 	Sus	1

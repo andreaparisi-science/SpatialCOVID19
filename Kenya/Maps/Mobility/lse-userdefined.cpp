@@ -12,11 +12,11 @@ void storeIndividualData( const char * );
 
 enum {METHOD_CPC = 1, METHOD_DISTANCE = 2, METHOD_NORMDIST = 3};
 
-constexpr int METHOD = METHOD_DISTANCE;
+constexpr int METHOD = METHOD_CPC;
 constexpr double NR = 0.2;
 constexpr double minLim = 90.0;
 constexpr double delta  = 0.25;
-constexpr double REL_ERROR = 1.e-3;
+constexpr double REL_ERROR = 5.e-3;
 
 class MobData {
 public:
@@ -553,8 +553,7 @@ void  accessCycle( int status )  {
 	switch (status)  {
 		case CYCLE_INIT:
 			analyzeTripDistribution();
-//			loadAscFile("../Kenya_5km_ids.asc", popMap);
-			loadAscFile("../Kenya_5km_maonly.asc", popMap);
+			loadAscFile( std::string("../Kenya_") + std::to_string(GRIDRES) + "km_maonly.asc", popMap);
 			loadStoreFile("storage", popMap);
 			groups = buildGroups(strgroups);
 
@@ -608,6 +607,7 @@ void  accessCycle( int status )  {
 			break;
 		case CYCLE_PRE:
 			simStatus.preventOutputmapFrame();
+			simStatus.preventOutputlineFrame(0);
 			break;
 		case CYCLE_POST:
 			break;

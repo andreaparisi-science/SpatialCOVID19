@@ -22,11 +22,22 @@ static constexpr int TT = 1;   // Number of post-convergence generations
 
 // If this is NOT a fitting run
 int    constexpr DET_RATE = DET_1_00;	// Transmission rate for asymptomatics
-double constexpr SYMPTOMATIC_MULTIPLIER = 0.9; // Transmission rate for oldest class
+double constexpr SYMPTOMATIC_MULTIPLIER = 1.0; // Transmission rate for oldest class
 
 int constexpr ISOLATE_GAPDAYS = 4;   // Gap days from probable case detection to isolation of traced individuals
 int constexpr TRACING_THRESHOLD = 100;  // When contact tracing stops
 double constexpr  TRACING_PROB = 0.00;  // Contact tracing effectiveness 
+
+enum  {	POLICY_SOCIALDIST_PROB = 0, 	// Generalized reduction of social interactions
+		POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
+		POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for oldest (non-working)
+		POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
+		POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
+		POLICY_FAMILY_TRANSMIT, 		// Increae in family transmission
+		POLICY_STAYATHOME_FULL, 		// Whether stay-at-home for younger and older means avoiding all social contacts (ex. no shopping at all)
+		POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
+		POLICY_TYPE_LAST
+};
 
 static bool tracingOn = false;   // Flags if tracing is being carried on
 static int  totalCases = 0;     // Process total number of cases
@@ -37,6 +48,15 @@ static int  gcumulAsyCases = 0; // Global cumul number of asymptomatic cases (fo
 static int  mainUniqueId = 0;   // Unique Id for infectious (for contact tracing). It will get a unique starting value per process
 static double  timeOfAction = 100000000;   // When control measures get activated (modified during the run)
 static int  TOTCLASSES = 0; // Number of classes (to be set by ageNames())
+
+std::vector<double>  SOCIALDIST_PROB; // [1..3] Current values at the different extent levels (above). [0] Current value in grid element
+std::vector<double>  TRAVELREDUCTION;
+std::vector<double>  STAYATHOME_AGE;
+std::vector<double>  STAYATHOME_OTH;
+std::vector<double>  STAYATHOME_SCH;
+std::vector<double>  FAMILY_TRANSMIT;
+std::vector<double>  STAYATHOME_FULL;
+std::vector<double>  SCHOOL_CLOSURE;
 
 static  std::set<int>  contactEvents;
 static  std::map<int, int>  ageNames;  // from class to age group
@@ -52,10 +72,12 @@ enum {OCC_HOS = 0, OCC_ICU, OCC_HOM};
 std::vector<int> ages   = {0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80};
 std::vector<int> groups = {0, 0, 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16};
 
+// R0 values for different transmission levels (calculated for the above values. They are *almost* independent on scaling of above values)
+//static std::vector<double>  R0_tau = {1.02682, 2.1001, 4.45365, 8.53905, 16.7546};
+
 
 std::vector< std::vector< std::vector<double> > > baseMap;
 std::vector< std::vector<double> > popMap;
-std::vector< std::vector<int> >    idsMap;
 std::vector<double>  sizes;
 
 bool firstinfected;
@@ -152,6 +174,7 @@ public:
 		memcpy(buffer+pos, &infamily, sizeof(char)); pos += sizeof(char);
 		memcpy(buffer+pos, &length,  sizeof(int)); pos += sizeof(int);
 		memcpy(buffer+pos, &uniqueId, sizeof(int)); pos += sizeof(int);
+		memcpy(buffer+pos, &athome_prev, sizeof(double)); pos += sizeof(double);
 		sz = contacts.size();
 		memcpy(buffer+pos, &sz, sizeof(int)); pos += sizeof(int);
 		for (int jj = 0; jj < sz; jj++)  {
@@ -172,6 +195,7 @@ public:
 		memcpy(&infamily, buffer+pos, sizeof(char)); pos += sizeof(char);
 		memcpy(&length, buffer+pos, sizeof(int)); pos += sizeof(int);
 		memcpy(&uniqueId, buffer+pos, sizeof(int)); pos += sizeof(int);
+		memcpy(&athome_prev, buffer+pos, sizeof(double)); pos += sizeof(double);
 		memcpy(&sz, buffer+pos, sizeof(int)); pos += sizeof(int);
 		contacts.assign(sz, 0);
 		for (int jj = 0; jj < sz; jj++)  {
@@ -237,7 +261,7 @@ void  getAgeGroups()  {
 	}
 
 	for (int aa = 0; aa < nAgeGroups; aa++)  {
-		sprintf( ch_filename, ageGroupEsriFile.c_str(), aa );
+		sprintf( ch_filename, ageGroupEsriFile.c_str(), GRIDRES, aa );
 		filename = std::string( ch_filename );
 		std::cout << "Handling file [" << filename << "]\n" << std::flush;
 		handler.open( filename );
@@ -264,15 +288,6 @@ void  getAgeGroups()  {
 	std::cout << "done.\n";
 }
 
-
-
-void  loadIdentifiers( const std::string datafile )  {
-	EsriReader  reader(datafile);
-	MapData data = reader.readHeader();
-	idsMap.resize( data.ncols );
-	for (int jj = 0; jj < data.ncols; jj++)  idsMap[jj].resize( data.nrows, 0 );
-	reader.readFile( 1.0, idsMap );
-}
 
 
 void  resetCounters()  {
@@ -307,7 +322,7 @@ void  init()  {
 	//std::cout << "YYY\n" << std::flush;
 	//std::cout << "POPS2 " << simStatus.getLocalPopulationSize() << "\n";
 	//std::cout << "ZZZ\n" << std::flush;
-	assert( popMap[xx][yy] == simStatus.getLocalPopulationSize() );
+	//assert( popMap[xx][yy] == simStatus.getLocalPopulationSize() );
 	data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
 	if (data != nullptr)  {
 		delete data;
@@ -555,7 +570,7 @@ void  firstinfect( double case_lon, double case_lat )  {
 	double lon = simStatus.getLongitude();
 	int pop, kk;
 	// Vo' Euganeo
-	if (haversine(lon, lat, case_lon, case_lat) < 5.0)  {
+	if (haversine(lon, lat, case_lon, case_lat) < 1.0*GRIDRES)  {
 		counts.clear();
 		pop = simStatus.getLocalPopulationSize();
 		for (int jj = MINAGEGROUP; jj < nAgeGroups; jj++)  {
@@ -581,6 +596,23 @@ void  firstinfect( double case_lon, double case_lat )  {
 			throw "Cannot find first infective";
 		}
 	}
+}
+
+
+
+void  initPolicyParams()  {
+	int maxval = 0;
+	for (int jj = 0; jj < policyApplication.size(); jj++)  {
+		if (maxval < policyApplication[jj])  maxval = policyApplication[jj];
+	}
+	SOCIALDIST_PROB.assign(maxval+1, 0.0); // [1..3] Current values at the different extent levels (above). [0] Current value in grid element
+	TRAVELREDUCTION.assign(maxval+1, 0.0);
+	STAYATHOME_AGE.assign(maxval+1, 0.0);
+	STAYATHOME_OTH.assign(maxval+1, 0.0);
+	STAYATHOME_SCH.assign(maxval+1, 0.0);
+	FAMILY_TRANSMIT.assign(maxval+1, 1.0);
+	STAYATHOME_FULL.assign(maxval+1, 0.0);
+	SCHOOL_CLOSURE.assign(maxval+1, 0.0);
 }
 
 
@@ -629,15 +661,16 @@ void  accessCycle( int status )  {
 	switch (status)  {
 		case CYCLE_INIT:
 			mainUniqueId = 10000000*simStatus.getProcessId();
-			simStatus.setDailyFractions( {8.0, 8.0+(38.0/7.0)} );
+			simStatus.setDailyFractions( {8.0, 8.0+(45.0/7.0)} );
 			initMobility();
-			loadIdentifiers( identifiersFile );
 			getAgeGroups();
 			buildAgeAssignments();
 			//getSusceptibility();
 			initContactMatrix();
 //			std::cout << "CM " << params.KK_0_10 << " " << params.KK_10_0 << "\n";
+#ifdef  MODEL_FAMILY
 			params.home = 0;
+#endif
 			updateContactMatrix();
 
 /*			if (SCHOOL_CLOSURE)  {
@@ -653,7 +686,10 @@ void  accessCycle( int status )  {
 		case CYCLE_START:
 #ifndef FITTING
 			getSymptomaticRate(DET_RATE, SYMPTOMATIC_MULTIPLIER);
+			//params.eigen = R0_tau[DET_RATE];
+//			std::cout << "@@@ " << params.eigen <<" " << params.R0 <<" " << 1.0/params.gamma << " " << 1.0 / params.sigma << "\n";
 #endif
+			initPolicyParams();
 			resetCounters();
 			addAllPolicies( queue );
 			queue.setStart( params.t0 );
@@ -663,6 +699,7 @@ void  accessCycle( int status )  {
 //if (simStatus.getProcessId() == PROC_MAIN)  {
 //	std::cout << "[" << simStatus.getGlobalProcessId() << "] Policy count [" << queue.size() << "] - Schools day " << simStatus.getTime() << " -> " << SCHOOL_CLOSURE[0] << " " << SOCIALDIST_PROB[0] << "\n";
 //}
+//			std::cout << "@@@ " << params.eigen <<" " << params.R0 <<" " << 1.0/params.gamma << " " << 1.0 / params.sigma << "\n";
 			if (tracingOn)  {
 				shareContacts();
 			}
@@ -895,7 +932,9 @@ void  enforcePolicies()  {
 			if (tracingOn)  {
 				enforceIsolation(jj, kk, data);
 			}
+#ifdef  MODEL_FAMILY
 			enforceFamilyTransmission(jj, kk, data);
+#endif
 		}
 	}
 }
@@ -917,16 +956,14 @@ bool  handleMobility(int x0, int y0, int x1, int y1, double prob)  {
 			return false;
 		}
 		if (data->length == 0)  {
-			rnd = RNG->get();
-			kk = static_cast<int>(210*dist/1000.0);
-			if (kk > 210)  kk = 210;
-			data->length = getMobilityDuration(rnd, kk);
+			data->length = getMobilityDuration(rnd, dist);
 			if (data->length == 0)  return false;
 		}
 		retval = !handleIsolation(data, classId);
 		contactEvents.clear();
+
 	} else {
-		int indivId = simStatus.getCurrentIndividualId();
+/*		int indivId = simStatus.getCurrentIndividualId();
 		int classId = simStatus.getCurrentIndividualClass();
 		Infos *data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
 		if (data->isolate == 0)  {
@@ -940,6 +977,8 @@ bool  handleMobility(int x0, int y0, int x1, int y1, double prob)  {
 				throw "UNEXPECTED ERROR!!!";
 			}
 		}
+*/
+retval = true;
 	}
 	return retval;
 }
@@ -972,7 +1011,7 @@ void  buildAgeAssignments()  {
 		}
 	}
 
-	names = {"Inf_", "Asy_"};
+	names = {"Inf_", "Asy_", "Hom_"};
 	for (int jj = 0; jj < names.size(); jj++)  {
 		for (int kk = 0; kk < nAgeGroups; kk++)  {
 			int nm = classmapper[ names[jj] + std::to_string(kk) ];
@@ -1063,6 +1102,7 @@ void  familyTransmission(int indivId, int classId, Infos* data)  {
 	IndividualInfo infosthis, infosother;
 	RandomGenerator *RNG = simStatus.getRandomGenerator();
 	double  prob = params.R0 * params.gamma * FAMILY_TRANSMIT[0] / params.eigen;
+//	double  prob = params.R0 * params.gamma / params.eigen;
 	infosthis = simStatus.getIndividualInfo( indivId, classId );
 	
 	if (infosthis.placeOfContact == 0 && isInfective(classId))  {
@@ -1460,7 +1500,7 @@ void  doFitting( int status )  {
 
 			params.beta = params.R0 * params.gamma;
 			getSymptomaticRate( static_cast<int>(params.tau), params.zmax );
-			params.eigen = R0_tau[static_cast<int>(params.tau)];
+//			params.eigen = R0_tau[static_cast<int>(params.tau)];
 
 			chiSquared = 0.0;
 			simStatus.setSimulationLength( params.t0 + timeseries.size() );

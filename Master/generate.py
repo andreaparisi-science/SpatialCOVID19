@@ -6,6 +6,7 @@ country = sys.argv[1]
 cores = simList[country]['cores']
 mobility = simList[country]['mobility']
 simLen   = simList[country]['simLen']
+gridres  = simList[country]['gridres']
 
 if len(sys.argv) == 2:
 	readinit = "\tReadinit		Read\n"
@@ -21,10 +22,11 @@ else:
 		sys.exit(1)
 
 nAgeGroups = 17
-TOTCLASSES = (10+3)*nAgeGroups
+TOTCLASSES = (10)*nAgeGroups
 
 outputLse  = "GENERAL:\n"
-outputLse += "\tPartfile\t\t\"../../" + country + "/Setup/" + country + "_5km-{:03d}.ppm\"\n".format(cores)
+outputLse += "\tPartfile\t\t\"../../../" + country + "/Setup/" + country + "_" + str(gridres) + "km-{:03d}.ppm\"\n".format(cores)
+#outputLse += "\tPartfile\t\t\"../Simple.txt\"\n"
 outputLse += "\tLocations\t\t50\n"
 outputLse += readinit
 outputLse += "\tStorefile\t\t\"../storage\"\n"
@@ -34,8 +36,8 @@ outputLse += "\tIndivPrefLocs\t0\n"
 outputLse += "\tIndivHasData\t1\n"
 outputLse += "\tAccessCycle\t\t1\n\n"
 outputLse += "POPULATIONS:\n"
-#outputLse += "\tDefault	\"../../../../Setup/Kenya_5km.asc\"\thandleMobility\tRadiationNorm\t0.401\n\n"
-outputLse += "\tDefault	\"../../"+country+"/Setup/"+country+"_5km.asc\"\thandleMobility\tRadiationNorm\t"+str(mobility)+"\n\n"
+outputLse += "\tDefault	\"../../../"+country+"/Setup/"+country+"_"+str(gridres)+"km.asc\"\thandleMobility\tRadiationNorm\t"+str(mobility)+"\n\n"
+#outputLse += "\tDefault	\"../../../"+country+"/Setup/"+country+"_"+str(gridres)+"km.asc\"\tNone\tRadiationNorm\t"+str(mobility)+"\n\n"
 
 outputClasses = "CLASSES:\n"
 for agegr in range(0,nAgeGroups):
@@ -59,11 +61,11 @@ outputParams = "PARAMETERS:\n"
 outputParams += "\tRestart\t\tNone\t0\n"
 outputParams += "\ttau\t\tNone\t1.0\n"
 outputParams += "\tzmax\t\tNone\t1.0\n"
-outputParams += "\tt0\t\tNone\t28.0\n"
+outputParams += "\tt0\t\tNone\t1000000.0\n"
 outputParams += "\teta\t\tNone\t1.0\n"
 outputParams += "\tR0\t\tNone\t2.5\n"
 outputParams += "\tgamma\tNone\t1.0/2.76\n"
-outputParams += "\tsigma\tNone\t1.0/4.6\n"
+outputParams += "\tsigma\tNone\t1.0/5.2\n"
 outputParams += "\tbeta\tNone\tR0*gamma\n"
 outputParams += "\t#eigen\tNone\t23.1567\n"
 outputParams += "\t# Kenya's eigenvalue is 23.1567\n"

@@ -1,8 +1,7 @@
-CORES := 12
 
 all:
-	deryaSE CoV.lse
-	mpirun -np 12 ./runderyaSE 1
+	deryaSE --define GRIDRES=${GRIDRES} CoV.lse
+	mpirun -np ${CORES} ./runderyaSE 1
 
 clean:
 	\rm -f runderyaSE

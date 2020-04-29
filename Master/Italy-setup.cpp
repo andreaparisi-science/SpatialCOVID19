@@ -1,8 +1,8 @@
 // Relevant files loaded at execution time
-static  std::string  contactMatrixFile = "../../Italy/Contacts/ItalyContactMatrix";
-static  std::string  ageGroupEsriFile  = "../../Italy/Setup/Italy_5km_%d.dat";
-static  std::string  identifiersFile   = "../../Italy/Maps/Italy_ids.asc";
-static  std::string  timeseriesFile    = "../../Italy_timeseries.dat";
+static  std::string  contactMatrixFile = "../../../Italy/Contacts/ItalyContactMatrix";
+static  std::string  ageGroupEsriFile  = "../../../Italy/Setup/Italy_%dkm_%d.dat";
+static  std::string  identifiersFile   = "../../../Italy/Maps/Italy_%dkm_ids.asc";
+static  std::string  timeseriesFile    = "../../../Italy/Italy_timeseries.dat";
 
 // ITALY DATA
 //
@@ -53,16 +53,15 @@ std::vector<int>  yellow_provinces = {16, 17, 13, 19, 75, 98, 20, 15, 108, 18, 1
 //
 //  POLICY IDENTIFIERS
 enum  {POLICY_24thFeb = 0, POLICY_01stMar, POLICY_04thMar, POLICY_09thMar, POLICY_LAST};
-enum  {	POLICY_SOCIALDIST_PROB = 0, 	// Generalized reduction of social interactions
-		POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
-		POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for oldest (non-working)
-		POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
-		POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
-		POLICY_FAMILY_TRANSMIT, 		// Increae in family transmission
-		POLICY_STAYATHOME_FULL, 		// Whether stay-at-home for younger and older means avoiding all social contacts (ex. no shopping at all)
-		POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
-		POLICY_TYPE_LAST
-};
+//	POLICY_SOCIALDIST_PROB = 0, 	// Generalized reduction of social interactions
+//	POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
+//	POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for oldest (non-working)
+//	POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
+//	POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
+//	POLICY_FAMILY_TRANSMIT, 		// Increae in family transmission
+//	POLICY_STAYATHOME_FULL, 		// Whether stay-at-home for younger and older means avoiding all social contacts (ex. no shopping at all)
+//	POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
+
 // Parameters for each of the above policies. Rows indicate distinct policy packages, columns indicate distinct policy actions
 std::vector< std::array<double, 8> >  policyParams = {  // 4 packages, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
 	{0.80, 0.9, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0},  // 24th Feb (lockdown local to some municipalities)
@@ -79,20 +78,22 @@ std::vector< std::array<double, 8> >  policyDuration = {  // Duration of actions
 };
 std::vector<int>  policyApplication = {1, 2, 3, 3};  // Type and extent of policy: 1- initial outbreak areas(Lodi); 2- Regional (provinces); 3- Nationwide; 0- applied value
 
-std::vector<double>  SOCIALDIST_PROB(3+1, 0.0); // [1..3] Current values at the different extent levels (above). [0] Current value in grid element
-std::vector<double>  TRAVELREDUCTION(3+1, 0.0);
-std::vector<double>  STAYATHOME_AGE(3+1, 0.0);
-std::vector<double>  STAYATHOME_OTH(3+1, 0.0);
-std::vector<double>  STAYATHOME_SCH(3+1, 0.0);
-std::vector<double>  FAMILY_TRANSMIT(3+1, 1.0);
-std::vector<double>  STAYATHOME_FULL(3+1, 0.0);
-std::vector<double>  SCHOOL_CLOSURE(3+1, 0.0);
-
 std::vector< std::vector<double> >  firstInfections(1, {0.0, 9.705, 45.16});
 
 
-// R0 values for different transmission levels (calculated for the above values. They are *almost* independent on scaling of above values)
-static std::vector<double>  R0_tau = {16.7546, 8.53905, 4.45365, 2.1001, 1.02682};
+std::vector< std::vector<int> >    idsMap;
+void  loadIdentifiers( const std::string datafile )  {
+	char ch_filename[256];
+	std::string  filename;
+	sprintf( ch_filename, datafile.c_str(), GRIDRES );
+	filename = std::string( ch_filename );
+	EsriReader  reader(filename);
+	MapData data = reader.readHeader();
+	idsMap.resize( data.ncols );
+	for (int jj = 0; jj < data.ncols; jj++)  idsMap[jj].resize( data.nrows, 0 );
+	reader.readFile( 1.0, idsMap );
+}
+
 
 // Implements measures taking into account their spatial extent
 void	evalLocalParameters()  {
@@ -131,7 +132,10 @@ void	evalLocalParameters()  {
 		STAYATHOME_FULL[0] = STAYATHOME_FULL[index];
 		SCHOOL_CLOSURE[0]  = SCHOOL_CLOSURE[index];
 
-		params.work		= 1.0-STAYATHOME_OTH[0];
+#ifndef  MODEL_FAMILY
+		params.home     = FAMILY_TRANSMIT[0];
+#endif
+		params.work	= 1.0-STAYATHOME_OTH[0];
 		params.school	= 1.0-SCHOOL_CLOSURE[0];
 		params.other	= 1.0-SOCIALDIST_PROB[0];
 		params.mobility = 1.0-TRAVELREDUCTION[0];
@@ -149,5 +153,7 @@ inline  double getMobilityDuration(double rnd, int kk)  {
 }
 
 
-inline  void  initMobility()  {}
+inline  void  initMobility()  {
+	loadIdentifiers( identifiersFile );
+}
 
