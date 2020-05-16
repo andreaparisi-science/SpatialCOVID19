@@ -174,7 +174,7 @@ bool  checkLockdown(int x0, int y0)  {
 // FITTING  PROTOTYPE FOR GENERALIZATION
 //enum {PARAM_T0 = 0x01, PARAM_R0 = 0x02, PARAM_GAMMA = 0x04, PARAM_TRACING = 0x08};
 //enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
-std::vector< int >  inputTable = {DATA_CASES, DATA_DEATHS};
+std::vector< int >  inputTable = {DATA_DUMMY, DATA_CASES, DATA_DEATHS};
 std::vector< int >  paramTable = {PARAM_T0, PARAM_R0};
 std::vector< int >  distsTable = {DATA_CASES};
 

@@ -1,8 +1,8 @@
 // Relevant files loaded at execution time
-static  std::string  contactMatrixFile = "../../../Kenya/Contacts/KenyaContactMatrix";
-static  std::string  ageGroupEsriFile  = "../../../Kenya/Setup/Kenya_%dkm_%d.dat";
-static  std::string  identifiersFile   = "../../../Kenya/Maps/Kenya_%dkm_ids.asc";
-static  std::string  timeseriesFile    = "../../../Kenya/Kenya_timeseries.dat";
+static  std::string  contactMatrixFile = "../../../Data/Kenya/Contacts/KenyaContactMatrix";
+static  std::string  ageGroupEsriFile  = "../../../Data/Kenya/Setup/Kenya_%dkm_%d.dat";
+static  std::string  identifiersFile   = "../../../Data/Kenya/Maps/Kenya_%dkm_ids.asc";
+static  std::string  timeseriesFile    = "../../../Data/Kenya/Kenya_timeseries.dat";
 
 //	POLICY_TRACING_PROB = 0,		// Contact tracing probability
 //	POLICY_SOCIALDIST_PROB, 		// Generalized reduction of social interactions
@@ -144,7 +144,7 @@ bool  checkLockdown(int x0, int y0)  {
 // FITTING  PROTOTYPE FOR GENERALIZATION
 //enum {PARAM_T0 = 0x01, PARAM_R0 = 0x02, PARAM_GAMMA = 0x04, PARAM_TRACING = 0x08};
 //enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
-std::vector< int >  inputTable = {DATA_CASES, DATA_DEATHS};
+std::vector< int >  inputTable = {DATA_DUMMY, DATA_CASES, DATA_DEATHS};
 std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_GAMMA};
 std::vector< int >  distsTable = {DATA_CASES};
 

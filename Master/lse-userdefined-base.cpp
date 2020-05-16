@@ -95,7 +95,7 @@ std::vector<int> groups = {0, 0, 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 
 
 // Fitting macros
 enum {PARAM_T0 = 1, PARAM_R0, PARAM_GAMMA, PARAM_TRACING, PARAM_TAU, PARAM_ZMAX};
-enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
+enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS, DATA_DUMMY};
 
 std::vector< std::vector< std::vector<double> > > baseMap;
 std::vector< std::vector<double> > popMap;
@@ -1379,18 +1379,19 @@ void  doFitting( int status, PolicyQueue &queue )  {
 	static Particle    trialParticle;
 	static RandomGenerator *deryaRNG;
 	static std::vector<std::string> paramNames;
-	static std::vector< std::array<int,2> >  timeseries;
-	static int cases, deaths;
+	static std::vector< std::array<int,4> >  timeseries;
+	static int cases, deaths, sympt, asympt;
 	static unsigned int tsduration;
 	static DataBuffer  chiSqShare, evtData, paramShare;
 	static std::ifstream  in;
 	static std::ofstream  outputFile, outputFileAvg;
 	static std::string    dirPrefix = "Generation-";
 	static bool  hasrestarted, isgood;
-	static std::array<std::vector<int>, 2>  dailyCount;
+	static std::array<std::vector<int>, 3>  dailyCount;
 	double fzero = 0.0;
 	static double chiSquared;
-	static int    countEvents, countCases;
+	static int    countEvents, countCases, countAsyCases;
+	double dummy;
 	static double ctime;
 	static std::string outRunName = "successfulRun-" + to_string( simStatus.getProcessId() ) + ".dat";
 
@@ -1398,23 +1399,32 @@ void  doFitting( int status, PolicyQueue &queue )  {
 		case CYCLE_INIT:
 			in.open( timeseriesFile );
 			if (in.fail())  {
-				simStatus.abort( "Could not open file [timeseries.dat]" );
+				simStatus.abort( "Could not open file [" + timeseriesFile + "]" );
 			}
 			do {
-				cases = deaths = 0;
+				cases = deaths = sympt = asympt = 0;
 				for (int jj = 0; jj < inputTable.size(); jj++)  {
 					switch( inputTable[jj] )  {
+						case DATA_DUMMY:
+							in >> dummy;
+							break;
 						case DATA_CASES:
 							in >> cases;
 							break;
 						case DATA_DEATHS:
 							in >> deaths;
 							break;
+						case DATA_SYMPT:
+							in >> sympt;
+							break;
+						case DATA_ASYMPT:
+							in >> asympt;
+							break;
 						default:
 							simStatus.abort("Unexpected data type in input file ["+std::to_string(paramTable[jj])+"]");
 					}
 				}
-				timeseries.push_back({cases, deaths});
+				timeseries.push_back({deaths, cases, sympt, asympt});
 			} while (in.good());
 			in.close();
 			tsduration = timeseries.size();
@@ -1465,7 +1475,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			//evtData.setCommType( DATABUFFER_COMMGLOBAL );
 			paramShare.setBuffer( 6*sizeof(double), 6 );
 			chiSqShare.setBuffer( 2*sizeof(double)+1*sizeof(int), 2+1 );
-			evtData.setBuffer( 2*sizeof(int), 2 );
+			evtData.setBuffer( 3*sizeof(int), 3 );
 
 			if (simStatus.getGlobalProcessId() == 0 && params.Restart == 0)  {
 				std::system( ("\\rm -rv " + dirPrefix + "*").c_str() );
@@ -1577,6 +1587,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 
 			dailyCount[0].clear();
 			dailyCount[1].clear();
+			dailyCount[2].clear();
 			trialParticle = fitting.start();
 
 			for (int jj = 0; jj < paramTable.size(); jj++)  {
@@ -1606,6 +1617,8 @@ void  doFitting( int status, PolicyQueue &queue )  {
 						break;
 				}
 			}
+			params.t0   = std::floor( params.t0 );
+
 #ifdef  MODEL_FAMILY
 			params.R0  *= params.betaMul;
 			params.beta = params.R0 * params.gamma;
@@ -1629,6 +1642,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			chiSquared = 0.0;
 			countEvents = 0;
 			countCases  = 0;
+			countAsyCases = 0;
 			simStatus.setSimulationLength( params.t0 + timeseries.size() );
 			queue.setStart( params.t0 );
 			break;
@@ -1652,15 +1666,19 @@ void  doFitting( int status, PolicyQueue &queue )  {
 #else
 				countEvents = simStatus.getCountEvents( 0, eventmapper["Deaths"] );
 				countCases  = simStatus.getCountEvents( 0, eventmapper["CaseHos"] ) + simStatus.getCountEvents( 0, eventmapper["CaseIcu"] ) + simStatus.getCountEvents( 0, eventmapper["CaseHom"] );
+				countAsyCases = simStatus.getCountEvents( 0, eventmapper["Hidden"] );
 				evtData.clear();
 				evtData.pack( &countEvents,  DATA_INT, DATA_ADD );
 				evtData.pack( &countCases,   DATA_INT, DATA_ADD );
+				evtData.pack( &countAsyCases,   DATA_INT, DATA_ADD );
 				evtData.reduce();
 				evtData.unpack( &countEvents );
 				evtData.unpack( &countCases );
+				evtData.unpack( &countAsyCases );
 
-				dailyCount[0].push_back( countCases );
-				dailyCount[1].push_back( countEvents );
+				dailyCount[0].push_back( countEvents );
+				dailyCount[1].push_back( countCases );
+				dailyCount[2].push_back( countAsyCases );
 #endif
 			}
 			break;
@@ -1677,17 +1695,29 @@ void  doFitting( int status, PolicyQueue &queue )  {
 						double tmpnum, tmpden;
 						for (int jj = 0; jj < distsTable.size(); jj++)  {
 							switch (distsTable[jj])  {
-								case  DATA_CASES:
-									tmpnum = countCases;
-									tmpden = countCases;
-									tmpnum += -timeseries[ day ][0];
-									tmpden +=  timeseries[ day ][0];
-									break;
 								case  DATA_DEATHS:
 									tmpnum = countEvents;
 									tmpden = countEvents;
+									tmpnum += -timeseries[ day ][0];
+									tmpden +=  timeseries[ day ][0];
+									break;
+								case  DATA_CASES:
+									tmpnum = countCases + countAsyCases;
+									tmpden = countCases + countAsyCases;
 									tmpnum += -timeseries[ day ][1];
 									tmpden +=  timeseries[ day ][1];
+									break;
+								case  DATA_SYMPT:
+									tmpnum = countCases;
+									tmpden = countCases;
+									tmpnum += -timeseries[ day ][2];
+									tmpden +=  timeseries[ day ][2];
+									break;
+								case  DATA_ASYMPT:
+									tmpnum = countAsyCases;
+									tmpden = countAsyCases;
+									tmpnum += -timeseries[ day ][3];
+									tmpden +=  timeseries[ day ][3];
 									break;
 							}
 							numerator   += tmpnum*tmpnum;
@@ -1706,6 +1736,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 				}
 				countEvents = 0;
 				countCases  = 0;
+				countAsyCases = 0;
 			}
 			break;
 
@@ -1715,14 +1746,20 @@ std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST start \n";
 				std::string  dirName = dirPrefix + std::to_string(fitting.getPopulationTimer());
 				std::ofstream  outRun = std::ofstream( dirName + "/" + outRunName, ios::app );
 				for (unsigned idx = 0; idx < dailyCount[0].size(); idx++)  {
-					outRun << idx;
+					outRun << (static_cast<int>(idx) - static_cast<int>(params.t0+0.1));
 					for (int jj = 0; jj < distsTable.size(); jj++)  {
 						switch (distsTable[jj])  {
-							case  DATA_CASES:
+							case  DATA_DEATHS:
 								outRun << "\t" << dailyCount[0].at(idx);
 								break;
-							case  DATA_DEATHS:
+							case  DATA_CASES:
+								outRun << "\t" << dailyCount[1].at(idx) + dailyCount[2].at(idx);
+								break;
+							case  DATA_SYMPT:
 								outRun << "\t" << dailyCount[1].at(idx);
+								break;
+							case  DATA_ASYMPT:
+								outRun << "\t" << dailyCount[2].at(idx);
 								break;
 						}
 					}
