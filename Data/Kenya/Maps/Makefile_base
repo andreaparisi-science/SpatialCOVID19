@@ -1,0 +1,22 @@
+
+all:
+	make macroareas
+	make counties
+
+macroareas:
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield Name --sortfield id --shapeonly Shapefiles/MacroAreas.shp
+	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_maonly.asc
+	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_maonly.ppm
+
+counties:
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield COUNTY --sortfield OBJECTID --export Shapefiles/County.shp
+	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_ids.asc
+	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_ids.ppm
+	mkdir -p Counties
+	mv *.dat Counties/
+
+clean:
+	\rm -f *.asc
+	\rm -f *.ppm
+	\rm -f Counties/*
+

@@ -14,22 +14,42 @@
 #warning( "Macro FITTING was defined." )
 #endif
 
+#ifdef MODEL_FAMILY
+#warning( "Macro MODEL_FAMILY was defined." )
+#endif
+
+#ifdef MODEL_SEIR
+#warning( "Macro MODEL_SEIR was defined." )
+#endif
+
+#ifdef TAULEAP
+#warning( "Macro TAULEAP was defined." )
+#endif
+
+
 enum  {DET_0_00, DET_0_10, DET_0_25, DET_0_50, DET_1_00};
 
 // Used in fitting procedure
-static constexpr int NN = 16;  // Number of particles
 static constexpr int TT = 1;   // Number of post-convergence generations
 
 // If this is NOT a fitting run
 int    constexpr DET_RATE = DET_1_00;	// Transmission rate for asymptomatics
-double constexpr SYMPTOMATIC_MULTIPLIER = 1.0; // Transmission rate for oldest class
+double constexpr SYMPTOMATIC_MULTIPLIER = 0.9; // Transmission rate for oldest class
 
-int constexpr ISOLATE_GAPDAYS = 4;   // Gap days from probable case detection to isolation of traced individuals
-int constexpr TRACING_THRESHOLD = 100;  // When contact tracing stops
-double constexpr  TRACING_PROB = 0.00;  // Contact tracing effectiveness 
+// If attack rate is close to natural
+static double constexpr  BETA_FAMILY_MULTIPLIER = 1.0;
+static double constexpr  R0_FAMILY_MULTIPLIER   = 1.17212;
 
-enum  {	POLICY_SOCIALDIST_PROB = 0, 	// Generalized reduction of social interactions
+// If attack rate is 0.158 (Bi et al. preprint. This is surpassed by Lancet publication)
+//static double constexpr  BETA_FAMILY_MULTIPLIER = 1.230;
+//static double constexpr  R0_FAMILY_MULTIPLIER   = 1.17081;
+
+int constexpr ISOLATE_GAPDAYS = 3;   // Gap days from probable case detection to isolation of traced individuals
+
+enum  {	POLICY_TRACING_PROB = 0,		// Contact tracing probability
+		POLICY_SOCIALDIST_PROB, 		// Generalized reduction of social interactions
 		POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
+		POLICY_TRAVELRED_ADMIN, 		// Reduction of travel intensity
 		POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for oldest (non-working)
 		POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
 		POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
@@ -46,11 +66,12 @@ static int  gcumulCases = 0;    // Global cumul number of cases (for output)
 static int  cumulAsyCases = 0;  // Process cumul number of asymptomatic cases
 static int  gcumulAsyCases = 0; // Global cumul number of asymptomatic cases (for output)
 static int  mainUniqueId = 0;   // Unique Id for infectious (for contact tracing). It will get a unique starting value per process
-static double  timeOfAction = 100000000;   // When control measures get activated (modified during the run)
 static int  TOTCLASSES = 0; // Number of classes (to be set by ageNames())
 
+std::vector<double>  TRACING_PROB;
 std::vector<double>  SOCIALDIST_PROB; // [1..3] Current values at the different extent levels (above). [0] Current value in grid element
 std::vector<double>  TRAVELREDUCTION;
+std::vector<double>  TRAVELRED_ADMIN;
 std::vector<double>  STAYATHOME_AGE;
 std::vector<double>  STAYATHOME_OTH;
 std::vector<double>  STAYATHOME_SCH;
@@ -72,15 +93,15 @@ enum {OCC_HOS = 0, OCC_ICU, OCC_HOM};
 std::vector<int> ages   = {0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80};
 std::vector<int> groups = {0, 0, 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16};
 
-// R0 values for different transmission levels (calculated for the above values. They are *almost* independent on scaling of above values)
-//static std::vector<double>  R0_tau = {1.02682, 2.1001, 4.45365, 8.53905, 16.7546};
-
+// Fitting macros
+enum {PARAM_T0 = 1, PARAM_R0, PARAM_GAMMA, PARAM_TRACING, PARAM_TAU, PARAM_ZMAX};
+enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
 
 std::vector< std::vector< std::vector<double> > > baseMap;
 std::vector< std::vector<double> > popMap;
 std::vector<double>  sizes;
 
-bool firstinfected;
+int firstinfected;
 class Infos;
 
 // Prototype of functions
@@ -98,7 +119,7 @@ void  shareContacts();
 void  recovery(Infos*);
 void  enforcePolicies();
 void  shareOutputData();
-void  doFitting(int);
+void  doFitting(int, PolicyQueue&);
 
 
 #define  Kenya 1
@@ -112,6 +133,8 @@ void  doFitting(int);
 #		include "Italy-setup.cpp"
 #	elif COUNTRY == Kenya
 #		include "Kenya-setup.cpp"
+#	elif COUNTRY == Test
+#		include "Test-setup.cpp"
 #	else
 #		error Unrecognized name for COUNTRY.
 #	endif
@@ -221,6 +244,7 @@ private:
 };
 
 
+#ifndef  TAULEAP
 Infos * indivDataFactory()  {
 	Infos *data = nullptr;
 	try {
@@ -230,7 +254,7 @@ Infos * indivDataFactory()  {
 	}
 	return data;
 }
-
+#endif
 
 
 void  getAgeGroups()  {
@@ -298,7 +322,7 @@ void  resetCounters()  {
 	gcumulAsyCases = 0; // Global cumul number of asymptomatic cases (for output)
 	occupancy = goccupancy = {0, 0, 0};
 	for (int jj = 0; jj < cumulDeaths.size(); jj++)  cumulDeaths[jj] = gcumulDeaths[jj] = 0;
-	firstinfected = false;
+	firstinfected = 0;
 }
 
 
@@ -323,6 +347,8 @@ void  init()  {
 	//std::cout << "POPS2 " << simStatus.getLocalPopulationSize() << "\n";
 	//std::cout << "ZZZ\n" << std::flush;
 	//assert( popMap[xx][yy] == simStatus.getLocalPopulationSize() );
+
+#ifndef  TAULEAP
 	data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
 	if (data != nullptr)  {
 		delete data;
@@ -330,18 +356,9 @@ void  init()  {
 	data = indivDataFactory();
 	data->length = 0;
 	simStatus.setIndividualData( indivId, classId, data );
+#endif
 
 	if (xx != xpre || yy != ypre)  {
-/*		probs.clear();
-		probs.resize( nAgeGroups, 0 );
-//		std::cout << xx << " " << yy << " " << popMap.size() << " " << popMap[xx].size() << "\n" << std::flush;
-//		std::cout << xx << " " << yy << " " << popMap[xx][yy] << "\n" << std::flush;
-		for (int jj = 0; jj < nAgeGroups; jj++)  {
-			probs[jj] = baseMap[jj][xx][yy]*1.0/(1.0*popMap[xx][yy]);
-			if (jj > 0)  probs[jj] += probs[jj-1];
-//			std::cout << "&& " << (probs[jj]-1)*1000 << "\n";
-		}
-*/
 		occupy.clear();
 		occupy.resize( nAgeGroups, 0 );
 		for (int jj = 0; jj < nAgeGroups; jj++)  {
@@ -413,7 +430,7 @@ bool  infect(int indivId, int classId, Infos* data)  {
 //std::cout << "ID0 " << other->uniqueId << " " << mainUniqueId << "\n";
 	}
 //std::cout << "ID1 " << other->uniqueId << " " << mainUniqueId << "\n";
-	if (tracingOn && RNG->get() < TRACING_PROB)  {
+	if (tracingOn && RNG->get() < TRACING_PROB[0])  {
 		data->contacts.push_back(other->uniqueId);
 	}
 	return true;
@@ -464,7 +481,9 @@ void  recovery(Infos *data)  {
 
 
 
-void  moveToCase()   {
+// Return boolean because it is used directly in the SEIR model
+// besides being used indirectly in the full model
+bool  moveToCase()   {
 	int indivId = simStatus.getCurrentIndividualId();
 	int classId = simStatus.getCurrentIndividualClass();
 	Infos * data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
@@ -475,13 +494,13 @@ void  moveToCase()   {
 	cumulCases++;
 	// Clear storage space to reduce memory footprint
 	recovery(data);
+	return true;
 }
 
 
 
 bool moveToHos()  {
 	occupancy[OCC_HOS]++;
-	moveToCase();
 	return true;
 }
 
@@ -489,7 +508,6 @@ bool moveToHos()  {
 
 bool moveToIcu()  {
 	occupancy[OCC_ICU]++;
-	moveToCase();
 	return true;
 }
 
@@ -561,7 +579,7 @@ bool  moveToInfect()  {
 
 
 
-void  firstinfect( double case_lon, double case_lat )  {
+bool  firstinfect( double type, double case_lon, double case_lat )  {
 	int  constexpr  MINAGEGROUP = 7;
 	RandomGenerator *gen = simStatus.getRandomGenerator();
 	int nAgeGroups = groups[ groups.size()-1 ] + 1;
@@ -569,8 +587,23 @@ void  firstinfect( double case_lon, double case_lat )  {
 	double lat = simStatus.getLatitude();
 	double lon = simStatus.getLongitude();
 	int pop, kk;
-	// Vo' Euganeo
+	std::string prefix;
+
+	if (type == 0.0)  {
+		prefix = "Asy_";
+	} else if (type == 1.0)  {
+//	if (type == 1.0)  {
+		prefix = "Esp_";
+	} else if (type == 2.0)  {
+		prefix = "Inf_";
+	} else if (type == 3.0)  {
+		prefix = "Asy_";
+	} else {
+		throw "Unknown type in firstinfect()";
+	}
+
 	if (haversine(lon, lat, case_lon, case_lat) < 1.0*GRIDRES)  {
+//std::cout << "FIRST INFECTIVE\n";
 		counts.clear();
 		pop = simStatus.getLocalPopulationSize();
 		for (int jj = MINAGEGROUP; jj < nAgeGroups; jj++)  {
@@ -585,16 +618,23 @@ void  firstinfect( double case_lon, double case_lat )  {
 			if (kk > nAgeGroups)  simStatus.abort( "Age class out of bounds!" );
 //			std::cout << "&&&&&& [" << kk << "] " << simStatus.getCountIndividuals( classmapper["Sus_"+std::to_string(kk)] ) << "\n";
 			int classId = classmapper["Sus_"+std::to_string(kk)];
+
+#ifndef  TAULEAP
 			Infos *data = reinterpret_cast<Infos*>( simStatus.getIndividualData( 0, classId ) );
 			data->uniqueId = ++mainUniqueId;
-
-			simStatus.moveGenericIndividualFromToClass( classId, classmapper["Inf_"+std::to_string(kk)] );
-			firstinfected = true;
 			data->infamily = 1;
+#endif
+
+			simStatus.moveGenericIndividualFromToClass( classId, classmapper[prefix+std::to_string(kk)] );
+//			if (type == 2.0)  simStatus.incrementEvents( eventmapper["Case"] );
+//			else if (type == 3.0)  simStatus.incrementEvents( eventmapper["Hidden"] );
 			//totalCases++;
 		} else {
 			throw "Cannot find first infective";
 		}
+		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -605,8 +645,10 @@ void  initPolicyParams()  {
 	for (int jj = 0; jj < policyApplication.size(); jj++)  {
 		if (maxval < policyApplication[jj])  maxval = policyApplication[jj];
 	}
+	TRACING_PROB.assign(maxval+1, 0.0);
 	SOCIALDIST_PROB.assign(maxval+1, 0.0); // [1..3] Current values at the different extent levels (above). [0] Current value in grid element
 	TRAVELREDUCTION.assign(maxval+1, 0.0);
+	TRAVELRED_ADMIN.assign(maxval+1, 0.0);
 	STAYATHOME_AGE.assign(maxval+1, 0.0);
 	STAYATHOME_OTH.assign(maxval+1, 0.0);
 	STAYATHOME_SCH.assign(maxval+1, 0.0);
@@ -621,11 +663,17 @@ void  addAllPolicies( PolicyQueue &queue )  {
 	for (int jj = 0; jj < policyParams.size(); jj++)  {
 		for (int kk = 0; kk < policyParams[jj].size(); kk++)  {
 			switch (kk)  {
+				case  POLICY_TRACING_PROB:
+					queue.addPolicy( Policy(policyApplication[jj], &TRACING_PROB[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
+					break;
 				case  POLICY_SOCIALDIST_PROB:
 					queue.addPolicy( Policy(policyApplication[jj], &SOCIALDIST_PROB[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
 					break;
 				case  POLICY_TRAVELREDUCTION:
 					queue.addPolicy( Policy(policyApplication[jj], &TRAVELREDUCTION[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
+					break;
+				case  POLICY_TRAVELRED_ADMIN:
+					queue.addPolicy( Policy(policyApplication[jj], &TRAVELRED_ADMIN[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
 					break;
 				case  POLICY_STAYATHOME_AGE:
 					queue.addPolicy( Policy(policyApplication[jj], &STAYATHOME_AGE[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
@@ -654,12 +702,13 @@ void  addAllPolicies( PolicyQueue &queue )  {
 
 void  accessCycle( int status )  {
 	static bool switcher = true;
-	static bool activateStayAtHome = false;
 	static PolicyQueue queue;
+	static DataBuffer  firstInfBuffer;
 	double sum = 0;
 
 	switch (status)  {
 		case CYCLE_INIT:
+			firstInfBuffer.setBuffer( sizeof(int), 1 );
 			mainUniqueId = 10000000*simStatus.getProcessId();
 			simStatus.setDailyFractions( {8.0, 8.0+(45.0/7.0)} );
 			initMobility();
@@ -667,32 +716,34 @@ void  accessCycle( int status )  {
 			buildAgeAssignments();
 			//getSusceptibility();
 			initContactMatrix();
-//			std::cout << "CM " << params.KK_0_10 << " " << params.KK_10_0 << "\n";
+
 #ifdef  MODEL_FAMILY
 			params.home = 0;
+			params.R0  *= params.betaMul;
+			params.beta = params.R0 * params.gamma;
 #endif
-			updateContactMatrix();
 
-/*			if (SCHOOL_CLOSURE)  {
-				queue.addPolicy( Policy( &params.school, &timeOfAction, 0.0 ) );
-			}
-			queue.addPolicy( Policy( &params.other,  &timeOfAction, 21, 1.0-SOCIALDIST_PROB ) );
-			queue.addPolicy( Policy( &activateStayAtHome, &timeOfAction ) );
-			queue.addPolicy( Policy( &params.work,   &timeOfAction, 1.0-STAYATHOME_OTH ) );
-			policyQueue.setTime( params.t0 ); // days from first imported case
-*/
+			updateContactMatrix();
 			break;
 
 		case CYCLE_START:
 #ifndef FITTING
+#	ifdef  MODEL_SEIR
+			// In this case we leave the default all symtpomatics
+			//getSymptomaticRate(DET_RATE, 0.0);
+#	else
 			getSymptomaticRate(DET_RATE, SYMPTOMATIC_MULTIPLIER);
+#	endif
 			//params.eigen = R0_tau[DET_RATE];
 //			std::cout << "@@@ " << params.eigen <<" " << params.R0 <<" " << 1.0/params.gamma << " " << 1.0 / params.sigma << "\n";
 #endif
 			initPolicyParams();
 			resetCounters();
+			queue.clear();
 			addAllPolicies( queue );
+#ifndef FITTING
 			queue.setStart( params.t0 );
+#endif
 			break;
 
 		case CYCLE_RESET:
@@ -708,22 +759,35 @@ void  accessCycle( int status )  {
 			// # SOCIAL DISTANCING
 			// ###################
 			queue.applyPolicies( -1, simStatus.getTime() );
-			updateContactMatrix();
+			//updateContactMatrix();
 			break;
 
 		case CYCLE_EVAL:
 			evalLocalParameters();
-			if (!firstinfected && simStatus.getTime() >= firstInfections[0][0]) {
-				firstinfect( firstInfections[0][1], firstInfections[0][2] );
+			for (int jj = firstinfected; jj < firstInfections.size(); jj++)  {
+				if (firstInfections[firstinfected][1] == 0.0 && simStatus.getTime() >= firstInfections[firstinfected][0])  {
+					if (firstinfect( firstInfections[firstinfected][1], firstInfections[firstinfected][2], firstInfections[firstinfected][3] ))  {
+						firstinfected++;
+					}
+				} else if (simStatus.getTime() >= params.t0+firstInfections[firstinfected][0])  {
+					if (firstinfect( firstInfections[firstinfected][1], firstInfections[firstinfected][2], firstInfections[firstinfected][3] ))  {
+						firstinfected++;
+					}
+				// We ran out of first infections?  Then we do not need to worry anymore
+				} else if (simStatus.getTime() >= params.t0+firstInfections[firstInfections.size()-1][0]+1)  {
+					firstinfected = firstInfections.size();
+				}
 			}
 			enforcePolicies();
-			//if (activateStayAtHome)  {
-				stayAtHome();
-//				activateStayAtHome = true;
-			//}
+			stayAtHome();
 			break;
 
 		case CYCLE_PRE:
+			firstInfBuffer.clear();
+			firstInfBuffer.pack( &firstinfected, DATA_INT, DATA_MAX );
+			firstInfBuffer.reduce();
+			firstInfBuffer.unpack( &firstinfected );
+
 			shareOutputData();
 			contactEvents.clear();
 			break;
@@ -731,7 +795,7 @@ void  accessCycle( int status )  {
 		case CYCLE_POST:
 			totalCases = 0;
 #ifndef  FITTING
-			if (simStatus.getTime() > 60)  {
+			if (simStatus.getTime() > 60 + params.t0)  {
 				// gcumulXXXX have been set in printmap(), executed before CYCLE_POST
 				if (gcumulCases+gcumulAsyCases < 10)  {
 					simStatus.exit("This seems an early extinct outbreak");
@@ -747,7 +811,7 @@ void  accessCycle( int status )  {
 			break;
 	}
 #ifdef  FITTING
-	doFitting(status);
+	doFitting(status, queue);
 #endif
 }
 
@@ -792,16 +856,7 @@ void  shareContacts()  {
 		fullsz += sizes[jj];
 	}
 	buf.unpack( &totalCases );
-#ifndef FITTING
-	std::cout << "TotalCases: " << totalCases << "\n";
-#endif
 
-	// EARLY EXIT!
-	if (totalCases > TRACING_THRESHOLD)  {
-		tracingOn = false;
-		contactEvents.clear();
-		return;
-	}
 
 //std::cout << "FULLSIZE IS: " << fullsz << "\n";
 //for (auto &ele: contactEvents)  {
@@ -897,13 +952,13 @@ void  enforceIsolation(int jj, int kk, Infos *data)  {
 //					if (contactEvents.find( data->contacts[qq] ) != contactEvents.end())  {
 			if (std::find(contactEvents.begin(), contactEvents.end(), data->contacts[qq]) != contactEvents.end())  {
 				// If found
-				if (RNG->get() < TRACING_PROB)  {
+				//if (RNG->get() < TRACING_PROB[0])  {
 					data->isolate = 1+ISOLATE_GAPDAYS;
 					data->isolate_duration = 14;
 					data->contacts.clear();
 //std::cout<<"ISOLATING !\n";
 					break;
-				}
+				//}
 			}
 		}
 	}
@@ -945,10 +1000,24 @@ bool  handleMobility(int x0, int y0, int x1, int y1, double prob)  {
 	bool  retval = false;
 	double  rnd, dist = haversine( x0, y0, x1, y1 );
 	int  kk;
+
+	x0 = x0 % simStatus.getMaxX();
+	x1 = x1 % simStatus.getMaxX();
+
 	if (prob > 0)  {
+		if (TRAVELRED_ADMIN[0] > 0.0)  {
+			if (checkLockdown(x0, y0) || checkLockdown(x1,y1))  {
+				if (RNG->get() < TRAVELRED_ADMIN[0])  {
+					return false;
+				}
+			}
+		}
 		if (RNG->get() >= params.eta)  return false;
 		if (RNG->get() >= params.mobility)  return false;
 
+#ifdef  TAULEAP
+		return true;
+#else
 		int indivId = simStatus.getCurrentIndividualId();
 		int classId = simStatus.getCurrentIndividualClass();
 		Infos *data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
@@ -956,14 +1025,19 @@ bool  handleMobility(int x0, int y0, int x1, int y1, double prob)  {
 			return false;
 		}
 		if (data->length == 0)  {
-			data->length = getMobilityDuration(rnd, dist);
+			data->length = getMobilityDuration(dist);
 			if (data->length == 0)  return false;
 		}
 		retval = !handleIsolation(data, classId);
 		contactEvents.clear();
+#endif
 
 	} else {
-/*		int indivId = simStatus.getCurrentIndividualId();
+
+#ifdef  TAULEAP
+		return true;
+#else
+		int indivId = simStatus.getCurrentIndividualId();
 		int classId = simStatus.getCurrentIndividualClass();
 		Infos *data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
 		if (data->isolate == 0)  {
@@ -977,8 +1051,8 @@ bool  handleMobility(int x0, int y0, int x1, int y1, double prob)  {
 				throw "UNEXPECTED ERROR!!!";
 			}
 		}
-*/
-retval = true;
+#endif
+
 	}
 	return retval;
 }
@@ -987,7 +1061,12 @@ retval = true;
 
 void  buildAgeAssignments()  {
 	int nAgeGroups = groups[ groups.size()-1 ] + 1;
-	std::vector<std::string>  names = {"Sus_", "Esp_", "Inf_", "Asy_", "Hos_", "Icu_", "Hom_", "Rec_", "Ded_", "Asyrec_"};
+#ifdef  MODEL_SEIR
+	std::vector<std::string>  names = {"Sus_", "Esp_", "Inf_", "Asy_", "Rec_", "Asyrec_"};
+#else
+	std::vector<std::string>  names = {"Sus_", "Esp_", "Inf_", "Asy_", "Wai_", "Hos_", "Icu_", "Hom_", "Rec_", "Ded_", "Asyrec_"};
+//	std::vector<std::string>  names = {"Sus_", "Esp_", "Inf_", "Asy_", "Hos_", "Icu_", "Hom_", "Rec_", "Ded_", "Asyrec_"};
+#endif
 	for (int jj = 0; jj < names.size(); jj++)  {
 		for (int kk = 0; kk < nAgeGroups; kk++)  {
 			int nm = classmapper[ names[jj] + std::to_string(kk) ];
@@ -1011,7 +1090,8 @@ void  buildAgeAssignments()  {
 		}
 	}
 
-	names = {"Inf_", "Asy_", "Hom_"};
+//	names = {"Inf_", "Asy_", "Hom_"};
+	names = {"Inf_", "Asy_"};
 	for (int jj = 0; jj < names.size(); jj++)  {
 		for (int kk = 0; kk < nAgeGroups; kk++)  {
 			int nm = classmapper[ names[jj] + std::to_string(kk) ];
@@ -1059,9 +1139,9 @@ void familySetup(int indivId, int classId)  {
 	assert( info.placeOfContact == 0);
 
 	familymembers.push_back( {info.home.rank, indivId, classId} );
-	for (int jj = 0; jj < nAgeGroups; jj++)  {
-		pp.push_back( localKK_home[ ageNames[classId] ][ jj ] );
-		if (jj > 0)  pp[jj] += pp[jj-1];
+	for (int ii = 0; ii < nAgeGroups; ii++)  {
+		pp.push_back( localKK_home[ ii ][ ageNames[classId] ] );
+		if (ii > 0)  pp[ii] += pp[ii-1];
 	}
 	while  (count < sz)  {
 		rnd = RNG->get();
@@ -1101,9 +1181,12 @@ void familySetup(int indivId, int classId)  {
 void  familyTransmission(int indivId, int classId, Infos* data)  {
 	IndividualInfo infosthis, infosother;
 	RandomGenerator *RNG = simStatus.getRandomGenerator();
-	double  prob = params.R0 * params.gamma * FAMILY_TRANSMIT[0] / params.eigen;
-//	double  prob = params.R0 * params.gamma / params.eigen;
+	// The factor 1.230 is used to ensure an attack rate of 15.8%
+	// Note: we divide by R0 multiplier because in the formula R0 is the well-mixed value
+	double  prob = params.R0 * params.gamma * FAMILY_TRANSMIT[0] * params.familyAttackMul / params.eigen;
 	infosthis = simStatus.getIndividualInfo( indivId, classId );
+//	int infAge = ageNames[ classId ];
+//	int susAge;
 	
 	if (infosthis.placeOfContact == 0 && isInfective(classId))  {
 		for (int kk = 0; kk < data->family.size(); kk++)  {
@@ -1121,13 +1204,16 @@ void  familyTransmission(int indivId, int classId, Infos* data)  {
 
 //			std::cout << "This guy is at home!\n" << std::fflush;
 			if (isSusceptible(infosother.status))  {
+//				susAge = ageNames[ infosother.status ];
+//				prob *= localKK_home[ susAge ][ infAge ];
 				if (RNG->get() < 1.0-std::exp( -prob ))  {
+//				if (RNG->get() < 1.0)  {
 					Infos *other = reinterpret_cast<Infos*>( simStatus.getIndividualData( infosother.id, infosother.status ) );
 					if (data->uniqueId == 0)  {
 						data->uniqueId = ++mainUniqueId;
 					}
 			
-					if (tracingOn && RNG->get() < TRACING_PROB)  {
+					if (tracingOn && RNG->get() < TRACING_PROB[0])  {
 						other->contacts.push_back(data->uniqueId);
 					}
 
@@ -1272,11 +1358,13 @@ void  printmapextra( FILE *handler )  {
 	int nAgeGroups = groups[ groups.size()-1 ] + 1;
 	int hosp = 0, icus = 0;
 
+#ifndef MODEL_SEIR
 	for (int jj = 0; jj < nAgeGroups; jj++)  {
 		hosp += simStatus.getCountIndividuals( classmapper[ "Hos_" + std::to_string(jj) ] );
 		icus += simStatus.getCountIndividuals( classmapper[ "Icu_" + std::to_string(jj) ] );
 	}
 	fprintf( handler, "\t%d %d", hosp, icus );
+#endif
 }
 
 
@@ -1285,8 +1373,8 @@ void  printmapextra( FILE *handler )  {
 
 int constexpr STOREBUFFER_SZ = 100*1000*1000;
 
-void  doFitting( int status )  {
-	enum {PARAM_R0 = 0, PARAM_TAU, PARAM_ZMAX, PARAM_T0};
+void  doFitting( int status, PolicyQueue &queue )  {
+	//enum {PARAM_R0 = 0, PARAM_TAU, PARAM_ZMAX, PARAM_T0};
 	static FittingABC  fitting( "Adaptive" );
 	static Particle    trialParticle;
 	static RandomGenerator *deryaRNG;
@@ -1305,7 +1393,6 @@ void  doFitting( int status )  {
 	static int    countEvents, countCases;
 	static double ctime;
 	static std::string outRunName = "successfulRun-" + to_string( simStatus.getProcessId() ) + ".dat";
-	enum {DATA_CASES = 0, DATA_DEATHS};
 
 	switch( status )  {
 		case CYCLE_INIT:
@@ -1314,7 +1401,19 @@ void  doFitting( int status )  {
 				simStatus.abort( "Could not open file [timeseries.dat]" );
 			}
 			do {
-				in >> cases >> deaths;
+				cases = deaths = 0;
+				for (int jj = 0; jj < inputTable.size(); jj++)  {
+					switch( inputTable[jj] )  {
+						case DATA_CASES:
+							in >> cases;
+							break;
+						case DATA_DEATHS:
+							in >> deaths;
+							break;
+						default:
+							simStatus.abort("Unexpected data type in input file ["+std::to_string(paramTable[jj])+"]");
+					}
+				}
 				timeseries.push_back({cases, deaths});
 			} while (in.good());
 			in.close();
@@ -1330,16 +1429,36 @@ void  doFitting( int status )  {
 			fitting.setThreshold( 2.5 );
 			fitting.setKernelAmplitude( 1.0 );
 
-			fitting.addParameter( "R0",		0.0,	PARTYPE_UNIFORM,	{ 1., 7.} );
-			fitting.addParameter( "gamma",	0.0,	PARTYPE_UNIFORM,	{ 1., 8.} );
-			fitting.addParameter( "tau",	0.0,	PARTYPE_UNIFORM,	{ 0., 5.} );
-			fitting.addParameter( "zmax",	0.0,	PARTYPE_UNIFORM,	{ 0.2, 1.0} );
-			fitting.addParameter( "t0",		0.0,	PARTYPE_UNIFORM,	{ 1., 60.} );
-//			fitting.addParameter( "t0",		0.0,	PARTYPE_UNIFORM,	{ 1., 10.} );
-			fitting.addParameter( "eta",	0.0,	PARTYPE_UNIFORM,	{ 0.4, 1.0} );
-			fitting.addParameter( "theta",	0.0,	PARTYPE_UNIFORM,	{ 0.25, 4.0} );
+			for (auto &elem: paramTable)  {
+				switch (elem)  {
+					case  PARAM_T0:
+						fitting.addParameter( "t0",			0.0,	PARTYPE_UNIFORM,	{ 0., 60.} );
+						break;
+
+					case  PARAM_R0:
+						fitting.addParameter( "R0",			0.0,	PARTYPE_UNIFORM,	{std::log(1.0), std::log(7.0)} );
+						break;
+
+					case  PARAM_GAMMA:
+						fitting.addParameter( "gamma",		0.0,	PARTYPE_UNIFORM,	{0.5,  8.0} );
+						break;
+
+					case  PARAM_TRACING:
+						fitting.addParameter( "tracing",	0.0,	PARTYPE_UNIFORM,	{ 0., 1.0} );
+						break;
+
+					case  PARAM_TAU:
+						fitting.addParameter( "tau",		0.0,	PARTYPE_UNIFORM,	{ 0., 5.0} );
+						break;
+
+					case  PARAM_ZMAX:
+						fitting.addParameter( "zmax",		0.0,	PARTYPE_UNIFORM,	{ 0.2, 1.0} );
+						break;
+				}
+			}
+			paramNames = fitting.getNameOfParameters();
+
 			fitting.init( NN );
-			paramNames = {"R0", "gamma", "tau", "zmax", "t0", "eta", "theta"};
 
 			//paramShare.setCommType( DATABUFFER_COMMGLOBAL );
 			//chiSqShare.setCommType( DATABUFFER_COMMGLOBAL );
@@ -1459,53 +1578,59 @@ void  doFitting( int status )  {
 			dailyCount[0].clear();
 			dailyCount[1].clear();
 			trialParticle = fitting.start();
-			params.R0 = trialParticle.parameters[0];
-			params.gamma = 1.0/trialParticle.parameters[1];
-			params.tau   = trialParticle.parameters[2];
-			params.zmax  = trialParticle.parameters[3];
-			params.t0    = trialParticle.parameters[4];
-			params.eta   = trialParticle.parameters[5];
-			params.theta = trialParticle.parameters[6];
-			// Share parameters among nodes
-/*			paramShare.clear();
-			if (simStatus.getProcessId() == 0)  {
-				std::cout << "Params: " << params.R0 << " " << params.gamma << " " << params.tau << " " << params.zmax << " " << params.t0 << " "  << params.eta << " -> " << params.t0 + timeseries.size() << "\n";
-				paramShare.pack( &params.R0,    DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &params.gamma, DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &params.tau,   DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &params.zmax,  DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &params.t0,    DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &params.eta,   DATA_DOUBLE, DATA_ADD );
-			} else {
-				paramShare.pack( &fzero, DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &fzero, DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &fzero, DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &fzero, DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &fzero, DATA_DOUBLE, DATA_ADD );
-				paramShare.pack( &fzero, DATA_DOUBLE, DATA_ADD );
+
+			for (int jj = 0; jj < paramTable.size(); jj++)  {
+				switch (paramTable[jj])  {
+					case  PARAM_T0:
+						params.t0      = trialParticle.parameters[jj];
+						break;
+
+					case  PARAM_R0:
+						params.R0      = std::exp( trialParticle.parameters[jj] );
+						break;
+
+					case  PARAM_GAMMA:
+						params.gamma   = 1.0/trialParticle.parameters[jj];
+						break;
+
+					case  PARAM_TRACING:
+						params.tracing = trialParticle.parameters[jj];
+						break;
+
+					case  PARAM_TAU:
+						params.tau = trialParticle.parameters[jj];
+						break;
+
+					case  PARAM_ZMAX:
+						params.zmax = trialParticle.parameters[jj];
+						break;
+				}
 			}
-			paramShare.reduce();
-			paramShare.unpack( &params.R0 );
-			paramShare.unpack( &params.gamma );
-			paramShare.unpack( &params.tau );
-			paramShare.unpack( &params.zmax );
-			paramShare.unpack( &params.t0 );
-			paramShare.unpack( &params.eta );
-*/
+#ifdef  MODEL_FAMILY
+			params.R0  *= params.betaMul;
+			params.beta = params.R0 * params.gamma;
+#endif
 			if (simStatus.getProcessId() == 0)  {
-				std::cout << "[" << simStatus.__fullProcessId << "] Params: R0 " << params.R0 << ", gamma " << params.gamma << ", tau " << params.tau;
-				std::cout << ", zmax " << params.zmax << ", t0 " << params.t0 << ", eta "  << params.eta << ", theta " << params.theta << " -> " << params.t0 + timeseries.size() << "\n";
+				std::cout << "[" << simStatus.__fullProcessId << "] Params: ";
+				for (int jj = 0; jj < paramTable.size(); jj++)  {
+					std::cout << paramNames[jj] << " " << trialParticle.parameters[jj] << ",";
+				}
+				std::cout << " -> " << params.t0 + timeseries.size() << "\n";
 			}
 			fitting.acceptParticle(trialParticle);
 
-			params.beta = params.R0 * params.gamma;
+#ifdef  MODEL_SEIR
+			getSymptomaticRate(DET_RATE, SYMPTOMATIC_MULTIPLIER);
+#else
 			getSymptomaticRate( static_cast<int>(params.tau), params.zmax );
-//			params.eigen = R0_tau[static_cast<int>(params.tau)];
+#endif
+
 
 			chiSquared = 0.0;
-			simStatus.setSimulationLength( params.t0 + timeseries.size() );
 			countEvents = 0;
 			countCases  = 0;
+			simStatus.setSimulationLength( params.t0 + timeseries.size() );
+			queue.setStart( params.t0 );
 			break;
 
 		case CYCLE_RESET:
@@ -1516,6 +1641,15 @@ void  doFitting( int status )  {
 
 		case CYCLE_PRE:
 			if (simStatus.isOutputlineFrame(0))  {
+#ifdef  MODEL_SEIR
+				countCases  = simStatus.getCountEvents( 0, eventmapper["Case"] );
+				evtData.clear();
+				evtData.pack( &countCases,   DATA_INT, DATA_ADD );
+				evtData.reduce();
+				evtData.unpack( &countCases );
+				dailyCount[0].push_back( 0 );
+				dailyCount[1].push_back( countCases );
+#else
 				countEvents = simStatus.getCountEvents( 0, eventmapper["Deaths"] );
 				countCases  = simStatus.getCountEvents( 0, eventmapper["CaseHos"] ) + simStatus.getCountEvents( 0, eventmapper["CaseIcu"] ) + simStatus.getCountEvents( 0, eventmapper["CaseHom"] );
 				evtData.clear();
@@ -1525,8 +1659,9 @@ void  doFitting( int status )  {
 				evtData.unpack( &countEvents );
 				evtData.unpack( &countCases );
 
-				dailyCount[0].push_back( countEvents );
-				dailyCount[1].push_back( countCases );
+				dailyCount[0].push_back( countCases );
+				dailyCount[1].push_back( countEvents );
+#endif
 			}
 			break;
 
@@ -1539,21 +1674,34 @@ void  doFitting( int status )  {
 					int day = static_cast<int>(ctime-params.t0+0.001);
 
 					if (day < timeseries.size())  {
-						double tmpnum = countCases;
-						double tmpden = countCases;
-						tmpnum += -timeseries[ day ][0];
-						tmpden +=  timeseries[ day ][0];
-						numerator   += tmpnum*tmpnum;
-						denominator += tmpden*tmpden;
+						double tmpnum, tmpden;
+						for (int jj = 0; jj < distsTable.size(); jj++)  {
+							switch (distsTable[jj])  {
+								case  DATA_CASES:
+									tmpnum = countCases;
+									tmpden = countCases;
+									tmpnum += -timeseries[ day ][0];
+									tmpden +=  timeseries[ day ][0];
+									break;
+								case  DATA_DEATHS:
+									tmpnum = countEvents;
+									tmpden = countEvents;
+									tmpnum += -timeseries[ day ][1];
+									tmpden +=  timeseries[ day ][1];
+									break;
+							}
+							numerator   += tmpnum*tmpnum;
+							denominator += tmpden*tmpden;
 
-						chiSquaredTmp = denominator > 0 ? (numerator) / sqrt(denominator) : 0.0;
-						chiSquared += chiSquaredTmp;
-						//hasrestarted = fitting.step( chiSquared );
-						//if (hasrestarted)  {
-						//	if (simStatus.getProcessId() == 0)  {
-						//		std::cout << "Restarting in [All Processes]\n";
-						//	}
-						//}
+							chiSquaredTmp = denominator > 0 ? (numerator) / sqrt(denominator) : 0.0;
+							chiSquared += chiSquaredTmp;
+						}
+					}
+				}
+				hasrestarted = fitting.step( chiSquared );
+				if (hasrestarted)  {
+					if (simStatus.getProcessId() == 0)  {
+						std::cout << "Restarting in [Replica "+std::to_string( simStatus.getGlobalProcessId()/simStatus.getNumberOfProcesses() )+" ]\n";
 					}
 				}
 				countEvents = 0;
@@ -1562,18 +1710,28 @@ void  doFitting( int status )  {
 			break;
 
 		case CYCLE_LAST:
-//std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST start \n";
+std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST start \n";
 			if (chiSquared < fitting.getError())  {
 				std::string  dirName = dirPrefix + std::to_string(fitting.getPopulationTimer());
 				std::ofstream  outRun = std::ofstream( dirName + "/" + outRunName, ios::app );
-				for (unsigned idx = 0; idx < dailyCount[1].size(); idx++)  {
+				for (unsigned idx = 0; idx < dailyCount[0].size(); idx++)  {
 					outRun << idx;
-					outRun << "\t" << dailyCount[1].at(idx);
+					for (int jj = 0; jj < distsTable.size(); jj++)  {
+						switch (distsTable[jj])  {
+							case  DATA_CASES:
+								outRun << "\t" << dailyCount[0].at(idx);
+								break;
+							case  DATA_DEATHS:
+								outRun << "\t" << dailyCount[1].at(idx);
+								break;
+						}
+					}
 					outRun << "\n";
 				}
 				outRun << "\n";
 				outRun.close();
 			}
+
 //std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST CHECK 0 \n";
 			isgood = fitting.evaluate( chiSquared, hasrestarted );
 //std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST CHECK 1 \n";
@@ -1663,4 +1821,35 @@ void  evaluateR0( int tau_lvl )  {
 	// Build FF matrix:
 	
 }
+
+
+
+int  xinfectother(int nn)  {
+	return nn;
+}
+
+
+int  xinfectnone(int nn)  {
+	return nn;
+}
+
+int  xinfectatwork(int nn)  {
+	return nn;
+}
+
+int  xmoveToInfect(int nn)  {
+	return nn;
+}
+
+int  xrecoveryHidden(int nn)  {
+	cumulAsyCases += nn;
+	return nn;
+}
+
+int  xmoveToCase(int nn)  {
+	totalCases += nn;
+	cumulCases += nn;
+	return nn;
+}
+
 

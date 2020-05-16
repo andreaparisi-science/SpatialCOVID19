@@ -1,7 +1,7 @@
 IMPORTANT INFORMATION
 
 This tool uses a development version of the DeryaSE Engine. You are strongly adviced NOT to use it for other porpuses other than running this tool, as it has not been tested for wider use.
-For the same reason, you are advised to use this tool under Linux, as it might not even compile properly on other operating systems.
+For the same reason, you should use this tool under Linux, as it will not compile properly on other operating systems.
 
 
 REQUIREMENTS:
@@ -17,7 +17,8 @@ INSTALLING
 
 The installer will download required data from the WorldPop database.
 Data for one country could range within 5-10Gb.
-Downloading might take a long time.
+Downloading might take a long time depending on your connection.
+You can repeat the install operation for different countries.
 
 - Edit the install.sh file and modify the following parameters:
   CORES: the number of cores used by each simulation.
@@ -29,6 +30,56 @@ Downloading might take a long time.
 - Run the installer with
   bash install.sh
 
+
+
+SET UP
+
+Once installed, move to the 'Master' directory:
+
+cd Master
+
+Edit the 'Makefile' to alter the following variables:
+CORES : the number of cores each run will use.
+COUNTRY: the country you want to work with
+OUTDIR: the directory where executable and data should be stored.
+        This will be a sub-directory of 'Output'.
+
+Edit the 'config.py' file and alter the parameters of the country you intend
+        to work with.  The 'Default' country can be used as a blueprint.
+		You only need to specify values that differ from the 'Default' values.
+
+Now use the make command as follows:
+
+make prepare  # This will remove any pre-existing data in the target output directory.
+              # Use with caution.
+
+make  # This will generate three executables that can be used to run specific conditions
+      # or to fit to specific data
+
+
+
+EXECUTING
+
+Move to the chosen output directory
+
+cd ../Output/XYZ
+
+where XYZ represents the name of the output directory chosen during the SET UP phase.
+To run a set of 100 simulations with the parameter fixed in the SET UP phase type
+
+python3 multirun.py
+
+To fit to a set of data, type
+
+python3 fitting.py
+
+
+
+
+NOTE
+
+The above pipeline works with the data sets included.  To alter and explore the 
+package, please have a look to the documentation [TO BE INCLUDED].
 
 
 

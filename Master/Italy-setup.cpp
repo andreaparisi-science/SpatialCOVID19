@@ -1,8 +1,8 @@
 // Relevant files loaded at execution time
-static  std::string  contactMatrixFile = "../../../Italy/Contacts/ItalyContactMatrix";
-static  std::string  ageGroupEsriFile  = "../../../Italy/Setup/Italy_%dkm_%d.dat";
-static  std::string  identifiersFile   = "../../../Italy/Maps/Italy_%dkm_ids.asc";
-static  std::string  timeseriesFile    = "../../../Italy/Italy_timeseries.dat";
+static  std::string  contactMatrixFile = "../../../Data/Italy/Contacts/ItalyContactMatrix";
+static  std::string  ageGroupEsriFile  = "../../../Data/Italy/Setup/Italy_%dkm_%d.dat";
+static  std::string  identifiersFile   = "../../../Data/Italy/Maps/Italy_%dkm_ids.asc";
+static  std::string  timeseriesFile    = "../../../Data/Italy/Italy_timeseries.dat";
 
 // ITALY DATA
 //
@@ -55,6 +55,7 @@ std::vector<int>  yellow_provinces = {16, 17, 13, 19, 75, 98, 20, 15, 108, 18, 1
 enum  {POLICY_24thFeb = 0, POLICY_01stMar, POLICY_04thMar, POLICY_09thMar, POLICY_LAST};
 //	POLICY_SOCIALDIST_PROB = 0, 	// Generalized reduction of social interactions
 //	POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
+//	POLICY_TRAVELADMIN_RED,			// Reduction of travel between counties
 //	POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for oldest (non-working)
 //	POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
 //	POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
@@ -63,22 +64,25 @@ enum  {POLICY_24thFeb = 0, POLICY_01stMar, POLICY_04thMar, POLICY_09thMar, POLIC
 //	POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
 
 // Parameters for each of the above policies. Rows indicate distinct policy packages, columns indicate distinct policy actions
-std::vector< std::array<double, 8> >  policyParams = {  // 4 packages, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
-	{0.80, 0.9, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0},  // 24th Feb (lockdown local to some municipalities)
-	{0.25, 0.0, 0.2, 0.2, 0.2, 2.0, 0.0, 1.0},  //  1st Mar (restriction local to yellow provinces)
-	{0.20, 0.2, 0.2, 0.2, 0.2, 2.0, 0.0, 1.0},  //  4th Mar (nationwide school closures)
-	{0.90, 0.0, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0}   //  9th Mar (nationwide lockdown)
+std::vector< std::array<double, 10> >  policyParams = {  // 4 packages, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
+	{1.00, 0.80, 0.9, 0.0, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0},  // 24th Feb (lockdown local to some municipalities)
+	{1.00, 0.25, 0.0, 0.0, 0.2, 0.2, 0.2, 2.0, 0.0, 1.0},  //  1st Mar (restriction local to yellow provinces)
+	{0.00, 0.20, 0.2, 0.0, 0.2, 0.2, 0.2, 2.0, 0.0, 1.0},  //  4th Mar (nationwide school closures)
+	{0.00, 0.90, 0.0, 0.0, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0},  //  9th Mar (nationwide lockdown)
+	{0.80, 0.90, 0.0, 0.0, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0}   //  ~7 Aprile - 10 days increase in testing
 };
-std::vector<double>  policyTime = {8, 14, 17, 22};  // Days of application from day zero.
-std::vector< std::array<double, 8> >  policyDuration = {  // Duration of actions. Again, rows indicate distinct packages, columns distinct actions
-	{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-	{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-	{5.0, 5.0, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0},
-	{7.0, 7.0, 7.0, 7.0, 7.0, 0.0, 0.0, 0.0}
+std::vector<double>  policyTime = {8, 14, 17, 22, 52};  // Days of application from day zero.
+std::vector< std::array<double, 10> >  policyDuration = {  // Duration of actions. Again, rows indicate distinct packages, columns distinct actions
+	{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{ 0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0},
+	{ 0.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 0.0, 0.0, 0.0},
+	{10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
 };
-std::vector<int>  policyApplication = {1, 2, 3, 3};  // Type and extent of policy: 1- initial outbreak areas(Lodi); 2- Regional (provinces); 3- Nationwide; 0- applied value
+std::vector<int>  policyApplication = {1, 2, 3, 3, 3};  // Type and extent of policy: 1- initial outbreak areas(Lodi); 2- Regional (provinces); 3- Nationwide; 0- applied value
 
-std::vector< std::vector<double> >  firstInfections(1, {0.0, 9.705, 45.16});
+// Time; Type (1.0 -> Exp, 2.0 -> Inf, 3.0 -> Asy; Lon; Lat;
+std::vector< std::vector<double> >  firstInfections(1, {0.0, 0.0, 9.705, 45.16});
 
 
 std::vector< std::vector<int> >    idsMap;
@@ -123,19 +127,23 @@ void	evalLocalParameters()  {
 	}
 	// To be applied only if required, otherwise values are already correct
 	if (prev_index != index)  {
-		SOCIALDIST_PROB[0] = SOCIALDIST_PROB[index];
-		TRAVELREDUCTION[0] = TRAVELREDUCTION[index];
-		STAYATHOME_AGE[0]  = STAYATHOME_AGE[index];
-		STAYATHOME_OTH[0]  = STAYATHOME_OTH[index];
-		STAYATHOME_SCH[0]  = STAYATHOME_SCH[index];
-		FAMILY_TRANSMIT[0] = FAMILY_TRANSMIT[index];
-		STAYATHOME_FULL[0] = STAYATHOME_FULL[index];
-		SCHOOL_CLOSURE[0]  = SCHOOL_CLOSURE[index];
+		if (index != 0)  {
+			TRACING_PROB[0]    = TRACING_PROB[index]*params.tracing;
+			SOCIALDIST_PROB[0] = SOCIALDIST_PROB[index];
+			TRAVELREDUCTION[0] = TRAVELREDUCTION[index];
+			TRAVELRED_ADMIN[0] = TRAVELRED_ADMIN[index];
+			STAYATHOME_AGE[0]  = STAYATHOME_AGE[index];
+			STAYATHOME_OTH[0]  = STAYATHOME_OTH[index];
+			STAYATHOME_SCH[0]  = STAYATHOME_SCH[index];
+			FAMILY_TRANSMIT[0] = FAMILY_TRANSMIT[index];
+			STAYATHOME_FULL[0] = STAYATHOME_FULL[index];
+			SCHOOL_CLOSURE[0]  = SCHOOL_CLOSURE[index];
+		}
 
 #ifndef  MODEL_FAMILY
 		params.home     = FAMILY_TRANSMIT[0];
 #endif
-		params.work	= 1.0-STAYATHOME_OTH[0];
+		params.work		= 1.0;
 		params.school	= 1.0-SCHOOL_CLOSURE[0];
 		params.other	= 1.0-SOCIALDIST_PROB[0];
 		params.mobility = 1.0-TRAVELREDUCTION[0];
@@ -148,7 +156,7 @@ void	evalLocalParameters()  {
 
 
 // Mobility: duration of trips.  Here we assume simple commuting and daily work. Parameter will be fitted
-inline  double getMobilityDuration(double rnd, int kk)  {
+inline  double getMobilityDuration(double dist)  {
 	return  1;
 }
 
@@ -156,4 +164,17 @@ inline  double getMobilityDuration(double rnd, int kk)  {
 inline  void  initMobility()  {
 	loadIdentifiers( identifiersFile );
 }
+
+
+
+bool  checkLockdown(int x0, int y0)  {
+	false;
+}
+
+// FITTING  PROTOTYPE FOR GENERALIZATION
+//enum {PARAM_T0 = 0x01, PARAM_R0 = 0x02, PARAM_GAMMA = 0x04, PARAM_TRACING = 0x08};
+//enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
+std::vector< int >  inputTable = {DATA_CASES, DATA_DEATHS};
+std::vector< int >  paramTable = {PARAM_T0, PARAM_R0};
+std::vector< int >  distsTable = {DATA_CASES};
 

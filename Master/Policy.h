@@ -41,6 +41,7 @@ public:
 	void  addPolicy( const Policy &v_pol );
 	void  applyPolicies( int v_ext, double time );
 	unsigned  size();
+	void  clear();
 private:
 	double  actionTime;
 	std::vector<Policy>  queue;

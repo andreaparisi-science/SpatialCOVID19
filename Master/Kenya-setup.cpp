@@ -4,8 +4,10 @@ static  std::string  ageGroupEsriFile  = "../../../Kenya/Setup/Kenya_%dkm_%d.dat
 static  std::string  identifiersFile   = "../../../Kenya/Maps/Kenya_%dkm_ids.asc";
 static  std::string  timeseriesFile    = "../../../Kenya/Kenya_timeseries.dat";
 
-//	POLICY_SOCIALDIST_PROB = 0, 	// Generalized reduction of social interactions
+//	POLICY_TRACING_PROB = 0,		// Contact tracing probability
+//	POLICY_SOCIALDIST_PROB, 		// Generalized reduction of social interactions
 //	POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
+//	POLICY_TRAVELRED_ADMIN, 		// Reduction of travel intensity
 //	POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for oldest (non-working)
 //	POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
 //	POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
@@ -14,34 +16,73 @@ static  std::string  timeseriesFile    = "../../../Kenya/Kenya_timeseries.dat";
 //	POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
 
 // Parameters for each of the above policies. Rows indicate distinct policy packages, columns indicate distinct policy actions
-std::vector< std::array<double, 8> >  policyParams = {  // 4 policies, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
+std::vector< std::array<double, 10> >  policyParams = {  // 4 policies, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
+	{1.00, 0.45, 0.10, 0.0, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00},
+	{1.00, 0.45, 0.10, 0.9, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00}
 };
-std::vector<double>  policyTime = {    // Days of application from day zero.
+std::vector<double>  policyTime = {
+	8, 32
+};    // Days of application from day zero.
+std::vector< std::array<double, 10> >  policyDuration = {  // Duration of actions. Again, rows indicate distinct packages, columns distinct actions
+	{ 0, 14, 14, 14, 14, 14, 14, 14, 14,  8},
+	{ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0}
 };
-std::vector< std::array<double, 8> >  policyDuration = {  // Duration of actions. Again, rows indicate distinct packages, columns distinct actions
-};
-std::vector<int>  policyApplication = {};  // Type and extent of policy: 1- initial outbreak areas(Lodi); 2- Regional (provinces); 3- Nationwide; 0- applied value
+std::vector<int>  policyApplication = {
+	1, 1
+}; // Type and extent of policy: 1-Global; 0- applied value
 
-std::vector< std::vector<double> >  firstInfections(1, {0.0, 36.8172, -1.2864});
+std::vector< std::vector<double> >  firstInfections = {
+	{0.0, 0.0, 36.8172, -1.2864},  // First absolute
+	{3.0, 2.0, 36.8172, -1.2864},  // 5th of March (x3)
+	{3.0, 2.0, 36.8172, -1.2864},  // 5th of March
+	{3.0, 2.0, 36.8172, -1.2864},  // 5th of March
+	{7.0, 2.0, 36.8172, -1.2864},  // 9th of March
+	{12.0, 2.0, 36.8172, -1.2864},  // 17th of March
+	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March (x8)
+	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 2.0,  36.8172, -1.2864}  // 22nd of March
+};
+// Note Day 0, the 13th is day 8
+
+
+std::vector< std::vector<int> >    idsMap;
+void  loadIdentifiers( const std::string datafile )  {
+	char ch_filename[256];
+	std::string  filename;
+	sprintf( ch_filename, datafile.c_str(), GRIDRES );
+	filename = std::string( ch_filename );
+	EsriReader  reader(filename);
+	MapData data = reader.readHeader();
+	idsMap.resize( data.ncols );
+	for (int jj = 0; jj < data.ncols; jj++)  idsMap[jj].resize( data.nrows, 0 );
+	reader.readFile( 1.0, idsMap );
+}
+
 
 
 // Implements measures taking into account their spatial extent
 void	evalLocalParameters()  {
 	static int  prev_index = -1;
 	static int  prev_day = -1;
-
 	int day = static_cast<int>(simStatus.getTime()+0.0000001);
 	if (day != prev_day)  {
 		prev_day = day;
 		prev_index = -1;
 	}
 
-	int index = 0;
+	int index = 1;
 	// To be applied only if required, otherwise values are already correct
 	if (prev_index != index)  {
 		if (index != 0)  {
+			TRACING_PROB[0]    = TRACING_PROB[index]*params.tracing;
 			SOCIALDIST_PROB[0] = SOCIALDIST_PROB[index];
 			TRAVELREDUCTION[0] = TRAVELREDUCTION[index];
+			TRAVELRED_ADMIN[0] = TRAVELRED_ADMIN[index];
 			STAYATHOME_AGE[0]  = STAYATHOME_AGE[index];
 			STAYATHOME_OTH[0]  = STAYATHOME_OTH[index];
 			STAYATHOME_SCH[0]  = STAYATHOME_SCH[index];
@@ -50,6 +91,9 @@ void	evalLocalParameters()  {
 			SCHOOL_CLOSURE[0]  = SCHOOL_CLOSURE[index];
 		}
 
+#ifndef  MODEL_FAMILY
+		params.home		= FAMILY_TRANSMIT[0];
+#endif
 		params.work		= 1.0-STAYATHOME_OTH[0];
 		params.school	= 1.0-SCHOOL_CLOSURE[0];
 		params.other	= 1.0-SOCIALDIST_PROB[0];
@@ -62,85 +106,45 @@ void	evalLocalParameters()  {
 
 
 
-static int MAXLEN = 210;
-std::vector<double>  analyzeTripDistribution()  {
-	std::vector<double> xx, yy;
-	double fval, ymax, ymin, alpha, total = 0, weightot = 0;
-	ifstream  handler("../../../Kenya/Maps/Mobility/TripDistribution.tsv");
-	if (!handler.good())  {
-		simStatus.abort( "Cannot find Trip distribution file." );
-	}
-	while (true)  {
-		handler >> fval;
-		if (handler.eof())  break;
-		xx.push_back(fval);
-		handler >> fval;
-		yy.push_back(fval);
-	}
 
-	SplineInterpolator interp = SplineInterpolator(xx, yy, SPLINE_METHOD_NATURAL );
-	xx.resize(MAXLEN+1);
-	yy.clear();
-	for (int kk = 0; kk <= MAXLEN; kk++)  {
-		xx[kk] = kk;
-	}
-	yy = interp.interpolate(xx);
-	// Rescaling to zero
-	ymax = yy[0];
-	ymin = yy[MAXLEN];
-	alpha = ymax/(ymax-ymin);
-	for (int kk = 0; kk <= MAXLEN; kk++)  {
-		yy[kk] = alpha*(yy[kk]-ymin);
-	}
-	// Weighted and nonweighted sum
-	for (int kk = 0; kk <= MAXLEN; kk++)  {
-		total    += yy[kk];
-		weightot += yy[kk]/(kk+1);
-	}
-	std::cout << "TRIP TOTALS: " << total << " " << weightot << "\n";
-	return  yy;
+
+inline  int getMobilityDuration(double dist)  {
+	RandomGenerator *RNG = simStatus.getRandomGenerator();
+//	int kk = static_cast<int>(210*dist/1000.0);
+//	if (kk > 210)  kk = 210;
+//	return  extractFromDistribution( rnd, durationDistr[kk], -1, 0 );
+	return static_cast<int>( 1+RNG->get() * 14 );
 }
 
 
 
-std::vector< std::vector<double> >  makeDistr( double pp, std::vector<double>  tr )  {
-	std::vector< std::vector<double> >  distr;
-	distr.resize( 211 );
-	for (int ii = 0; ii <= 210; ii++)  {
-		distr[ii].resize( 211, 0.0 );
-	}
 
-	double  sum;
-	for (int ii = 0; ii <= 210; ii++)  {
-		sum = 0.0;
-		for (int jj = 0; jj <= 210; jj++)  {
-			distr[ii][jj] = pp*lse::Poisson(ii, jj) + (1-pp)*1.0/(211.0);
-			sum += distr[ii][jj];
-			distr[ii][jj] *= tr[jj];
+
+void  initMobility()  {
+	loadIdentifiers( identifiersFile );
+}
+
+
+
+
+std::vector<int>  lockdownCountyList = {
+	41, 47, 44, 46
+}; // 41-Nairobi, 47-Mombasa, 44-Kilifi, 46-Kwale
+bool  checkLockdown(int x0, int y0)  {
+	RandomGenerator *RNG = simStatus.getRandomGenerator();
+	if (simStatus.getTime() > policyTime[1])  {
+		if (std::find(lockdownCountyList.begin(), lockdownCountyList.end(), idsMap[x0][y0]) != lockdownCountyList.end())  {
+			return true;
 		}
 	}
-	return distr;
+	return false;
 }
 
 
-
-
-// Mobility: duration of trips
-static std::vector<double>  tripDistr;
-static std::vector< std::vector<double> >  durationDistr;
-
-
-inline  double getMobilityDuration(double rnd, double dist)  {
-	RandomGenerator *RNG = simStatus.getRandomGenerator();
-	rnd = RNG->get();
-	int kk = static_cast<int>(210*dist/1000.0);
-	if (kk > 210)  kk = 210;
-	return  extractFromDistribution( rnd, durationDistr[kk], -1, 0 );
-}
-
-
-inline  void  initMobility()  {
-	tripDistr = analyzeTripDistribution();
-	durationDistr = makeDistr( 0.50, tripDistr );
-}
+// FITTING  PROTOTYPE FOR GENERALIZATION
+//enum {PARAM_T0 = 0x01, PARAM_R0 = 0x02, PARAM_GAMMA = 0x04, PARAM_TRACING = 0x08};
+//enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
+std::vector< int >  inputTable = {DATA_CASES, DATA_DEATHS};
+std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_GAMMA};
+std::vector< int >  distsTable = {DATA_CASES};
 

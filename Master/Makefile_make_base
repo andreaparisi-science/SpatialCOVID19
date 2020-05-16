@@ -1,0 +1,10 @@
+CWD := $(shell pwd)
+OPTS = $(eval OPTS := $$(shell bash testTauleap.sh))$(OPTS)
+
+deryaSEnorm:
+	deryaSE ${OPTS} --define COUNTRY=${COUNTRY} --define GRIDRES=${GRIDRES} --compopts -I${HOME}/lib/include --linkopts ${CWD}/Policy.o,${CWD}/SplineInterpolator.o CoV.lse
+
+deryaSEfits:
+	deryaSE ${OPTS} --define COUNTRY=${COUNTRY} --define GRIDRES=${GRIDRES} --define FITTING --compopts -I${HOME}/lib/include --linkopts ${CWD}/Policy.o,${CWD}/SplineInterpolator.o CoV.lse
+
+

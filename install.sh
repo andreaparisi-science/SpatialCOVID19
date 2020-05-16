@@ -1,19 +1,23 @@
 CORES=12
 GRIDRES=5
-COUNTRY=Italy
-OUTDIR=OutItaly
+COUNTRY=Kenya
+OUTDIR=OutKenya
 
 PROCS=$(printf "%03d" ${CORES})
 
 echo -e "\033[36;1mDownloading and installing the engine\033[0m"
 cd Extern
 bash install.sh $1
+if [ $? -eq 1 ]; then
+	echo -e "\033[31;1mError in installing external engine.\033[0m"
+	exit 1
+fi
 
 cd ..
 echo -e "\033[36;1mDownloading maps\033[0m"
-cd ${COUNTRY}
+cd Data/${COUNTRY}
 cd Gridded
-bash install.sh
+#bash install.sh
 
 echo -e "\033[36;1mRescaling maps\033[0m"
 cd ../Setup
@@ -55,12 +59,17 @@ echo GRIDRES:=${GRIDRES} >> Makefile
 echo COUNTRY:=${COUNTRY} >> Makefile
 cat Makefile_base >> Makefile
 
-echo -e "\033[36;1mBuilding models\033[0m"
-cd ../../../Master
+echo -e "\033[36;1mSetting up models\033[0m"
+cd ../../../../Master
 echo CORES:=${CORES} > Makefile
 echo GRIDRES:=${GRIDRES} >> Makefile
 echo COUNTRY:=${COUNTRY} >> Makefile
 echo OUTDIR:=${OUTDIR} >> Makefile
 cat Makefile_base >> Makefile
-make
+
+echo CORES:=${CORES} > Makefile_make
+echo GRIDRES:=${GRIDRES} >> Makefile_make
+echo COUNTRY:=${COUNTRY} >> Makefile_make
+cat Makefile_make_base >> Makefile_make
+echo -e "\033[36;1mReady to build models.  Use make write, make read, make fits or make nofam.\033[0m"
 

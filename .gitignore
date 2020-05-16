@@ -19,4 +19,5 @@ __pycache__
 */Maps/Mobility/CoV.lse
 */Setup/Makefile
 Master/Makefile
+DeryaSE-summary-*.dat
 *.o
