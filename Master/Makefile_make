@@ -1,3 +1,4 @@
+CORES:=12
 GRIDRES:=5
 COUNTRY:=Kenya
 CWD := $(shell pwd)

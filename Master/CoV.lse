@@ -1,10 +1,10 @@
 GENERAL:
 	Partfile		"../../../Data/Kenya/Setup/Kenya_5km-012.ppm"
 	Locations		50
-	Readinit		Read
+	Readinit		Write
 	Storefile		"../storage"
 	ReduceFactor	1
-	Simlength		365
+	Simlength		10
 	IndivPrefLocs	0
 	IndivHasData	1
 	AccessCycle		1

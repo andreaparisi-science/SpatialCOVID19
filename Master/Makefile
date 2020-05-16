@@ -20,9 +20,6 @@ write:
 	g++ -c SplineInterpolator.cpp
 	g++ -c Policy.cpp
 	python3 generate.py ${COUNTRY} Write > CoV.lse
-	echo GRIDRES:=${GRIDRES}  > Makefile_make
-	echo COUNTRY:=${COUNTRY} >> Makefile_make
-	cat Makefile_make_base >> Makefile_make
 	make -f Makefile_make  deryaSEnorm
 	mkdir -p ${OUTPUT}
 	mkdir -p ${OUTPUT}/Base
@@ -34,9 +31,6 @@ read:
 	g++ -c SplineInterpolator.cpp
 	g++ -c Policy.cpp
 	python3 generate.py ${COUNTRY} Read > CoV.lse
-	echo GRIDRES:=${GRIDRES}  > Makefile_make
-	echo COUNTRY:=${COUNTRY} >> Makefile_make
-	cat Makefile_make_base >> Makefile_make
 	make -f Makefile_make  deryaSEnorm
 	mkdir -p ${OUTPUT}
 	mv runderyaSE ${OUTPUT}/runderyaSEread
@@ -48,9 +42,6 @@ fits:
 	g++ -c SplineInterpolator.cpp
 	g++ -c Policy.cpp
 	python3 generate.py ${COUNTRY} Read > CoV.lse
-	echo GRIDRES:=${GRIDRES}  > Makefile_make
-	echo COUNTRY:=${COUNTRY} >> Makefile_make
-	cat Makefile_make_base >> Makefile_make
 	make -f Makefile_make  deryaSEfits
 	mkdir -p ${OUTPUT}
 	mkdir -p ${OUTPUT}/Fits
