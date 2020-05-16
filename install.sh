@@ -17,7 +17,7 @@ cd ..
 echo -e "\033[36;1mDownloading maps\033[0m"
 cd Data/${COUNTRY}
 cd Gridded
-#bash install.sh
+bash install.sh
 
 echo -e "\033[36;1mRescaling maps\033[0m"
 cd ../Setup
