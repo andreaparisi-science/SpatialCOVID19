@@ -94,7 +94,7 @@ void	evalLocalParameters()  {
 #ifndef  MODEL_FAMILY
 		params.home		= FAMILY_TRANSMIT[0];
 #endif
-		params.work		= 1.0-STAYATHOME_OTH[0];
+		params.work		= 1.0;
 		params.school	= 1.0-SCHOOL_CLOSURE[0];
 		params.other	= 1.0-SOCIALDIST_PROB[0];
 		params.mobility = 1.0-TRAVELREDUCTION[0];
