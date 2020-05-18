@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MPIRUN="mpiexec -np 12"
+MPIRUN="mpiexec -np ${NSLOTS}"
 
 #PBS  -l nodes=1:ppm=16
 

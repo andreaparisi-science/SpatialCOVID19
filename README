@@ -65,43 +65,38 @@ Move to the chosen output directory
 cd ../Output/XYZ
 
 where XYZ represents the name of the output directory chosen during the SET UP phase.
-There are two python scripts in the directory:
 
-- multirun.py
+- Multirun
+  Edit the 'scriptruns.sh' bash script with the correct execution commands for your cluster.
+  Submit
 
-  It is used to run simulations with given parameters.  Altering the 'for' cycle range
-  will alter how many simulations are run.
-
-
-- fitting.py
-
-  It is used to run a fit parameters to a set of data.
-
-
-Edit the file 'script.sh' and comment out the script that you want to ignore.
-Adapt the script file to your cluster and specify the correct number of processes if 
-required.  Submit.
+- Fitting
+  Edit the 'scriptfits.sh' bash script with the correct execution commands for your cluster.
+  Specify the number of replicas (see below).
+  Submit
 
 
 
 NOTES about fitting:
 
-Choose the number of processors (cores) you want to use for a single simulation.  This 
-is typically the number of cores of one node.  You can now use multiple nodes for parallel
-fitting by using replicas.  For instance, if the cluster has nodes with 16 cores and you 
-wish to use 5 nodes for parallel fitting, you can modify the script.sh file as:
+You can now use multiple nodes for parallel fitting by using replicas.  The number of replicas
+should be an integer divisor of the number of processes.  For instance, suppose that you want
+to use 10 cluster nodes, each having 16 cores.  That gives a total of 160 processes.
+You can use 5 replicas, 10 replicas, but not 7 replicas.  For efficiency, you might want to 
+have one replica per node, thus running 10 parallel replicas each using 16 cores.
+You will only need to alter the 'scriptfits.sh' file with
 
-#PBS -l nodes=5:ppn=16
+  REPLICAS=10
+
+and, according to the node manager of your cluster, either
+
+  #PBS  -l nodes=10:ppm=16
 
 or 
 
-#SBATCH --nodes=5
-#SBATCH --ntasks-per-node=16
-
-depending on the node engine the cluster uses.  You can then modify the 'fitting.sh' file as:
-
-os.system( "cd Base; mpirun -np 16 ./runderyaSEwrite --replicate 5 1; cd .." )
-os.system( "cd Fits;  mpirun -np 16 ./runderyaSEfit --replicate 5 1; cd .." )
+  #SBATCH --nodes=10
+  #SBATCH --ntasks-per-node=28
 
 
-The command
+
+
