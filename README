@@ -65,54 +65,43 @@ Move to the chosen output directory
 cd ../Output/XYZ
 
 where XYZ represents the name of the output directory chosen during the SET UP phase.
-To run a set of 100 simulations with the parameter fixed in the SET UP phase type
+There are two python scripts in the directory:
 
-python3 multirun.py
+- multirun.py
 
-To fit to a set of data, type
-
-python3 fitting.py
-
+  It is used to run simulations with given parameters.  Altering the 'for' cycle range
+  will alter how many simulations are run.
 
 
+- fitting.py
 
-NOTE
-
-The above pipeline works with the data sets included.  To alter and explore the 
-package, please have a look to the documentation [TO BE INCLUDED].
+  It is used to run a fit parameters to a set of data.
 
 
-
-
-FORECASTING
-
-To build forecasting runs, just type
-
-make
-
-This will take several minutes to complete, so relax and take a cup of tea or coffee. 
-It will build two versions: the first is a version that only generates the mobility
-data needed to move individuals around.  The second will perform the actual calculations.
-
-If you prefer to build the two version separately, type:
-
-make write
-make read
-
-To run a set of 100 sims just type
-python3 multirun.py
-
-The python script may be modified to increase the number of runs at will.
-
-If on a cluster, you can adapt the submission 'script.sh' to your needs.
+Edit the file 'script.sh' and comment out the script that you want to ignore.
+Adapt the script file to your cluster and specify the correct number of processes if 
+required.  Submit.
 
 
 
+NOTES about fitting:
+
+Choose the number of processors (cores) you want to use for a single simulation.  This 
+is typically the number of cores of one node.  You can now use multiple nodes for parallel
+fitting by using replicas.  For instance, if the cluster has nodes with 16 cores and you 
+wish to use 5 nodes for parallel fitting, you can modify the script.sh file as:
+
+#PBS -l nodes=5:ppn=16
+
+or 
+
+#SBATCH --nodes=5
+#SBATCH --ntasks-per-node=16
+
+depending on the node engine the cluster uses.  You can then modify the 'fitting.sh' file as:
+
+os.system( "cd Base; mpirun -np 16 ./runderyaSEwrite --replicate 5 1; cd .." )
+os.system( "cd Fits;  mpirun -np 16 ./runderyaSEfit --replicate 5 1; cd .." )
 
 
-FITTING
-
-xxxx
-
-
-
+The command

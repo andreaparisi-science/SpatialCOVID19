@@ -187,8 +187,21 @@ static std::vector< std::vector<double> >  symptomatic = {
 // This is the class storing individual data
 class Infos : public IndivData {
 public:
-	Infos() {isolate = 0; isolate_duration = 0; athome = 0; infamily = 0; length = 0; uniqueId = 0;};
-	~Infos() {};
+	Infos() { init(); }
+	~Infos() {}
+	void  init()  {
+		isolate = 0;
+		isolate_duration = 0;
+		athome = 0;
+		infamily = 0;
+		length = 0;
+		uniqueId = 0;
+		athome_prev = 0.0;
+		std::vector<int>().swap( contacts );
+		std::vector<int>().swap( family );
+		//contacts.clear();
+		//family.clear();
+	}
 	void  packData( unsigned int& len, char* buffer )  {
 		int sz, pos = 0;
 		memcpy(buffer+pos, &isolate, sizeof(char)); pos += sizeof(char);
@@ -237,7 +250,7 @@ public:
 	char infamily;
 	int length;
 	int uniqueId;
-	double  athome_prev = 0.0;
+	double  athome_prev;
 	std::vector<int> contacts;
 	std::vector<int> family;
 private:
@@ -350,11 +363,10 @@ void  init()  {
 
 #ifndef  TAULEAP
 	data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
-	if (data != nullptr)  {
-		delete data;
+	if (data == nullptr)  {
+		data = indivDataFactory();
 	}
-	data = indivDataFactory();
-	data->length = 0;
+	data->init();
 	simStatus.setIndividualData( indivId, classId, data );
 #endif
 
@@ -881,15 +893,17 @@ void  shareContacts()  {
 	}
 	buf.reduce();
 	//tmpContactEvents.resize( fullsz );
-	tmpContactEvents.clear();
+	contactEvents.clear();
+	//tmpContactEvents.clear();
 	int  tval;
 	for (int jj = 0; jj < fullsz; jj++)  {
 		//buf.unpack( &tmpContactEvents[jj] );
 		buf.unpack( &tval );
-		tmpContactEvents.insert(tval);
+		//tmpContactEvents.insert(tval);
+		contactEvents.insert(tval);
 //		std::cout << "TMPcontactEVENTS " << tmpContactEvents[jj] << "\n";
 	}
-	contactEvents.swap( tmpContactEvents );
+	//contactEvents.swap( tmpContactEvents );
 //	std::sort( contactEvents.begin(), contactEvents.end() );
 //	auto it = std::unique( contactEvents.begin(), contactEvents.end() );
 //	contactEvents.resize( std::distance(contactEvents.begin(), it) );
@@ -1029,7 +1043,7 @@ bool  handleMobility(int x0, int y0, int x1, int y1, double prob)  {
 			if (data->length == 0)  return false;
 		}
 		retval = !handleIsolation(data, classId);
-		contactEvents.clear();
+		//contactEvents.clear();
 #endif
 
 	} else {
@@ -1393,7 +1407,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 	static int    countEvents, countCases, countAsyCases;
 	double dummy;
 	static double ctime;
-	static std::string outRunName = "successfulRun-" + to_string( simStatus.getProcessId() ) + ".dat";
+	static std::string outRunName = "successfulRun-" + to_string( simStatus.getGlobalProcessId() / simStatus.getNumberOfProcesses() ) + ".dat";
 
 	switch( status )  {
 		case CYCLE_INIT:
@@ -1485,16 +1499,21 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			}
 
 			if (simStatus.getGlobalProcessId() == 0)  {
-				outputFileAvg.open( "outputAvg.dat", std::ios::out );
-				outputFile.open( "output.dat", std::ios::out );
-				outputFileAvg << "Timer";
-				outputFile << "Timer\tSample";
-				for (unsigned idx = 0; idx < paramNames.size(); idx++)  {
-					outputFileAvg << "\t" << paramNames[idx] << "\t" << "Delta_" << paramNames[idx];
-					outputFile << "\t" << paramNames[idx];
+				if (params.Restart == 0)  {
+					outputFileAvg.open( "outputAvg.dat", std::ios::out );
+					outputFile.open( "output.dat", std::ios::out );
+					outputFileAvg << "Timer";
+					outputFile << "Timer\tSample";
+					for (unsigned idx = 0; idx < paramNames.size(); idx++)  {
+						outputFileAvg << "\t" << paramNames[idx] << "\t" << "Delta_" << paramNames[idx];
+						outputFile << "\t" << paramNames[idx];
+					}
+					outputFileAvg << "\tError\n" << std::flush;
+					outputFile << "\tWeight\n" << std::flush;
+				} else  {
+					outputFileAvg.open( "outputAvg.dat", std::ios::app );
+					outputFile.open( "output.dat", std::ios::app );
 				}
-				outputFileAvg << "\tError\n" << std::flush;
-				outputFile << "\tWeight\n" << std::flush;
 			}
 			break;
 
@@ -1741,8 +1760,8 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			break;
 
 		case CYCLE_LAST:
-std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST start \n";
-			if (chiSquared < fitting.getError())  {
+//std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST start \n";
+			if (simStatus.getProcessId() == 0 && chiSquared < fitting.getError())  {
 				std::string  dirName = dirPrefix + std::to_string(fitting.getPopulationTimer());
 				std::ofstream  outRun = std::ofstream( dirName + "/" + outRunName, ios::app );
 				for (unsigned idx = 0; idx < dailyCount[0].size(); idx++)  {
@@ -1829,6 +1848,9 @@ std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST start \n";
 			if (fitting.getPopulationSamplingTimer() <= TT)  {
 				simStatus.setTime( 0 );
 				simStatus.reinitDisease();
+				if (fitting.getPopulationSamplingTimer() > 0)  {
+					simStatus.setSimulationLength( params.forecastLen );
+				}
 			}
 			break;
 
