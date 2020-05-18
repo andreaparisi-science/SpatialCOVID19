@@ -18,7 +18,8 @@ INSTALLING
 The installer will download required data from the WorldPop database.
 Data for one country could range within 5-10Gb.
 Downloading might take a long time depending on your connection.
-You can repeat the install operation for different countries.
+You can repeat the install operation for different countries or
+for different number of cores or grid resolutions.
 
 - Edit the install.sh file and modify the following parameters:
   CORES: the number of cores used by each simulation.
@@ -95,7 +96,7 @@ and, according to the node manager of your cluster, either
 or 
 
   #SBATCH --nodes=10
-  #SBATCH --ntasks-per-node=28
+  #SBATCH --ntasks-per-node=16
 
 
 
