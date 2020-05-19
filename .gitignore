@@ -22,4 +22,7 @@ Master/Makefile
 DeryaSE-summary-*.dat
 *.o
 Private
-
+Master/CoV.lse
+Master/lse-userdefined.cpp
+Master/Makefile
+Master/Makefile_make
