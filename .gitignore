@@ -21,3 +21,5 @@ __pycache__
 Master/Makefile
 DeryaSE-summary-*.dat
 *.o
+Private
+

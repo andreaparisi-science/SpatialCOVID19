@@ -15,10 +15,10 @@ simList['Default'] = {
 	'betaMul': 1.0,			# CORRECTIVE TERM TO BETA
 	'familyAttackMul': 1.0,  # CORRECTIVE TERM TO BETA IN HOUSEHOLD
 	'nParticles': 140,  	# Number of particles for fitting procedure
-	'fitRestart': 0,			# Whether fitting should restart from scratch
+	'fitRestart': 1,			# Whether fitting should restart from scratch
 }
 
-simList['Kenya'] = {'cores': 12, 'gridres': 5, 'mobility': 0.870, 'simLen': 365, 'R0': 2.5, 'model': 'consensus', 't0': 21, 'nParticles': 16, 'households': 'yes', 'betaMul': 1.172}
+simList['Kenya'] = {'cores': 12, 'gridres': 5, 'mobility': 0.870, 'simLen': 365, 'R0': 2.5, 'model': 'consensus', 't0': 21, 'nParticles': 4, 'households': 'yes', 'betaMul': 1.172}
 simList['Italy'] = {'cores': 12, 'gridres': 5, 'mobility': 0.395, 'simLen': 60, 'R0': 2.5, 'model': 'consensus', 't0':  21, 'nParticles': 16, 'households': 'yes', 'betaMul': 1.2368}
 #simList['Italy'] = {'cores': 12, 'gridres': 5, 'mobility': 0.395, 'simLen': 60, 'R0': 2.5, 'model': 'seir', 't0':  21, 'nParticles': 16, 'households': 'no', 'tauleap': 'no'}
 simList['Test'] = {'cores': 1, 'gridres': 5000, 'mobility': 0.870, 'simLen': 365, 'R0': 2.5, 'model': 'consensus', 't0':  0, 'nParticles': 16}

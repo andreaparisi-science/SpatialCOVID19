@@ -1152,7 +1152,7 @@ void familySetup(int indivId, int classId)  {
 	auto  info = simStatus.getIndividualInfo( indivId, classId );
 	assert( info.placeOfContact == 0);
 
-	familymembers.push_back( {info.home.rank, indivId, classId} );
+	familymembers.push_back( {static_cast<int>(info.home.rank), indivId, classId} );
 	for (int ii = 0; ii < nAgeGroups; ii++)  {
 		pp.push_back( localKK_home[ ii ][ ageNames[classId] ] );
 		if (ii > 0)  pp[ii] += pp[ii-1];
@@ -1169,7 +1169,7 @@ void familySetup(int indivId, int classId)  {
 			if (otherinfo.placeOfContact == 0 && data->isolate == 0 && data->infamily == 0)  {
 				data->infamily = 1;
 				count++;
-				familymembers.push_back( {otherinfo.home.rank, otherId, otherClass} );
+				familymembers.push_back( {static_cast<int>(otherinfo.home.rank), otherId, otherClass} );
 			} else {
 				notfound++;
 			}
@@ -1450,7 +1450,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			fitting.setDistrs( 1 ); // Number of intermediate distributions after which we assume convergence
 			fitting.setParticlesPerTrial( 2 ); // REPLICAS?
 			fitting.setDiscardRatio( 0.10, 0.30 );
-			fitting.setThreshold( 2.5 );
+			fitting.setThreshold( 85 );
 			fitting.setKernelAmplitude( 1.0 );
 
 			for (auto &elem: paramTable)  {
@@ -1491,7 +1491,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			chiSqShare.setBuffer( 2*sizeof(double)+1*sizeof(int), 2+1 );
 			evtData.setBuffer( 3*sizeof(int), 3 );
 
-			if (simStatus.getGlobalProcessId() == 0 && params.Restart == 0)  {
+			if (simStatus.getGlobalProcessId() == 0 && params.Restart == 1)  {
 				std::system( ("\\rm -rv " + dirPrefix + "*").c_str() );
 				// After evaluate, populationTimer has increased -> create dirs for storing future particles
 				std::string  dirName = dirPrefix + std::to_string(fitting.getPopulationTimer());
@@ -1499,7 +1499,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			}
 
 			if (simStatus.getGlobalProcessId() == 0)  {
-				if (params.Restart == 0)  {
+				if (params.Restart == 1)  {
 					outputFileAvg.open( "outputAvg.dat", std::ios::out );
 					outputFile.open( "output.dat", std::ios::out );
 					outputFileAvg << "Timer";
@@ -1519,7 +1519,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 
 		case CYCLE_START:
 //			simStatus.setSimulationLength( nweeks * 7 + 1 );
-			if (simStatus.getTime() == 0.0 && params.Restart)  {
+			if (simStatus.getTime() == 0.0 && params.Restart == 0)  {
 				std::cout << "Loading data from storage.\n";
 				MPI_Status  mpiStatus;
 
@@ -1563,7 +1563,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 //				simStatus.reinitDisease();
 
 				if (params.Restart == 2)  fitting.reset();
-				params.Restart = 0;
+				params.Restart = 1;
 
 			} else if (simStatus.getTime() == 0.0 && hasrestarted) {
 				std::cout << "Saving data to storage.\n";

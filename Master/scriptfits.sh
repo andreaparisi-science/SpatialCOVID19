@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MPIRUN=mpiexec -np ${NSLOTS}
-REPLICAS=5
+MPIRUN="mpiexec -np ${NSLOTS}"
+REPLICAS=1
 
 #PBS  -l nodes=1:ppm=16
 
@@ -18,5 +18,5 @@ ${MPIRUN} ./runderyaSEwrite --replicate $REPLICAS 1
 cd ..
 
 cd Fits
-${MPIRUN} ./runderyaSEfits --replicate $REPLICAS 1
+${MPIRUN} ./runderyaSEfit --replicate $REPLICAS 1
 cd ..
