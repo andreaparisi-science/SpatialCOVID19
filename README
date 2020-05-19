@@ -8,7 +8,6 @@ REQUIREMENTS:
 
 - A complete gnu C++ compiler
 - The MPI library installed
-- TIFFLib installed
 - A python interpreter
 - For data analysis, the R interpreter
 
