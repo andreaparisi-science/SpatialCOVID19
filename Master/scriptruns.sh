@@ -13,7 +13,7 @@ module purge
 module load GCC/7.3.0-2.30 OpenMPI/3.1.1 LibTIFF/4.0.9 Python/3.6.6
 
 cd Base
-#${MPIRUN} ./runderyaSEwrite 1
+${MPIRUN} ./runderyaSEwrite 1
 cd ..
 
 

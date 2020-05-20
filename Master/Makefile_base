@@ -22,7 +22,8 @@ write:
 	make -f Makefile_make  deryaSEnorm
 	mkdir -p ${OUTPUT}
 	mkdir -p ${OUTPUT}/Base
-	mv runderyaSE ${OUTPUT}/runderyaSEwrite
+	mv runderyaSE ${OUTPUT}/Base/runderyaSEwrite
+	make sources
 
 runs:
 	\rm -f ./.tauleap
@@ -37,6 +38,7 @@ runs:
 	mv runderyaSE ${OUTPUT}/runderyaSEread
 	cp scriptruns.sh ${OUTPUT}/
 	touch ${OUTPUT}/EXEC
+	make sources
 
 fits:
 	\rm -f ./.tauleap
@@ -51,6 +53,15 @@ fits:
 	mkdir -p ${OUTPUT}/Fits
 	mv runderyaSE ${OUTPUT}/Fits/runderyaSEfit
 	cp scriptfits.sh ${OUTPUT}/
+	make sources
+
+sources:
+	mkdir -p ${OUTPUT}/Sources
+	cp CoV.lse ${OUTPUT}/Sources
+	cp lse-userdefined.cpp ${OUTPUT}/Sources
+	cp config.py ${OUTPUT}/Sources
+	cp generate.py ${OUTPUT}/Sources
+	cp lse-userdefined-base.cpp ${OUTPUT}/Sources
 
 clean:
 	\rm -f ./.tauleap
