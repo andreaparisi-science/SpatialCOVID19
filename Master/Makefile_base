@@ -62,6 +62,7 @@ sources:
 	cp config.py ${OUTPUT}/Sources
 	cp generate.py ${OUTPUT}/Sources
 	cp lse-userdefined-base.cpp ${OUTPUT}/Sources
+	cp ${COUNTRY}-setup.cpp ${OUTPUT}/Sources
 
 clean:
 	\rm -f ./.tauleap

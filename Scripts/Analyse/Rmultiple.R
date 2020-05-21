@@ -44,10 +44,14 @@ for (jj in 1:length(directory))  {
 par(mar=c(5,5,4,3))
 
 pdf("occupancyWeekly.pdf", width=8, height=5)
+max.Hosp <- max( data$Hosp.occupancy )
+max.ICUs <- max( data$ICU.occupancy )
+max.vals <- max( max.Hosp, max.ICUs )
+
 boxplot( Hosp.occupancy ~ Week, data = data, cex=0.7, col="darkolivegreen3", border="darkblue", cex.axis=1.2, cex.lab=1.2, xlab="Day", ylab="Counts", outline=FALSE,
 	  main="Maximal weekly bed occupancy", cex.main=1.4)
 boxplot( ICU.occupancy ~ Week, data=data, col="orange", border="darkred", outline=FALSE, xaxt="n", yaxt="n", add=TRUE)
-legend(33, 28000, c("Hospital occupancy", "ICU occupancy"), fill=c("darkolivegreen4", "orange"), border=c("darkblue","darkred"), cex=1.2)
+legend(33, 0.9*max.vals, c("Hospital occupancy", "ICU occupancy"), fill=c("darkolivegreen4", "orange"), border=c("darkblue","darkred"), cex=1.2)
 
 fulldata$cases.val <- fulldata$ICU.cases + fulldata$Hosp.cases + fulldata$Home.cases
 gfulldata <- group_by(fulldata, Day)

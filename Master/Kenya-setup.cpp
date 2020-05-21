@@ -1,3 +1,6 @@
+#include "../Data/Kenya/CSVReader.h"
+#include "../Data/Kenya/CSVReader.cpp"
+
 // Relevant files loaded at execution time
 static  std::string  contactMatrixFile = "../../../Data/Kenya/Contacts/KenyaContactMatrix";
 static  std::string  ageGroupEsriFile  = "../../../Data/Kenya/Setup/Kenya_%dkm_%d.dat";
@@ -17,36 +20,43 @@ static  std::string  timeseriesFile    = "../../../Data/Kenya/Kenya_timeseries.d
 
 // Parameters for each of the above policies. Rows indicate distinct policy packages, columns indicate distinct policy actions
 std::vector< std::array<double, 10> >  policyParams = {  // 4 policies, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
-	{1.00, 0.45, 0.10, 0.0, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00},
-	{1.00, 0.45, 0.10, 0.9, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00}
+//	{1.00, 0.45, 0.10, 0.0, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00},
+//	{1.00, 0.45, 0.10, 0.9, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00}
+	{0.00, 0.00, 0.00, 0.0, 0.0, 0.00, 0.00, 1.00, 0.00, 0.00},
+	{0.00, 0.00, 0.00, 0.0, 0.0, 0.00, 0.00, 1.00, 0.00, 0.00}
 };
+// Leave here!
 std::vector<double>  policyTime = {
-	8, 32
+//	8, 32
+	0, 1000000
 };    // Days of application from day zero.
 std::vector< std::array<double, 10> >  policyDuration = {  // Duration of actions. Again, rows indicate distinct packages, columns distinct actions
-	{ 0, 14, 14, 14, 14, 14, 14, 14, 14,  8},
+//	{ 0, 14, 14, 14, 14, 14, 14, 14, 14,  8},
+//	{ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0}
+	{ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0},
 	{ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0}
 };
 std::vector<int>  policyApplication = {
+//	1, 1
 	1, 1
 }; // Type and extent of policy: 1-Global; 0- applied value
 
 std::vector< std::vector<double> >  firstInfections = {
-	{0.0, 0.0, 36.8172, -1.2864},  // First absolute
-	{3.0, 2.0, 36.8172, -1.2864},  // 5th of March (x3)
-	{3.0, 2.0, 36.8172, -1.2864},  // 5th of March
-	{3.0, 2.0, 36.8172, -1.2864},  // 5th of March
-	{7.0, 2.0, 36.8172, -1.2864},  // 9th of March
-	{12.0, 2.0, 36.8172, -1.2864},  // 17th of March
-	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March (x8)
-	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
-	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
-	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
-	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
-	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
-	{17.0, 2.0,  36.8172, -1.2864}, // 22nd of March
-	{17.0, 2.0,  36.8172, -1.2864}  // 22nd of March
-};
+	{0.0, 0.0, -1.0, 36.8172, -1.2864}//,  // First absolute
+/*	{3.0, 3.0, 36.8172, -1.2864},  // 5th of March (x3)
+	{3.0, 3.0, 36.8172, -1.2864},  // 5th of March
+	{3.0, 3.0, 36.8172, -1.2864},  // 5th of March
+	{7.0, 3.0, 36.8172, -1.2864},  // 9th of March
+	{12.0, 3.0, 36.8172, -1.2864},  // 17th of March
+	{17.0, 3.0,  36.8172, -1.2864}, // 22nd of March (x8)
+	{17.0, 3.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 3.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 3.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 3.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 3.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 3.0,  36.8172, -1.2864}, // 22nd of March
+	{17.0, 3.0,  36.8172, -1.2864}  // 22nd of March
+*/};
 // Note Day 0, the 13th is day 8
 
 
@@ -69,10 +79,19 @@ void  loadIdentifiers( const std::string datafile )  {
 void	evalLocalParameters()  {
 	static int  prev_index = -1;
 	static int  prev_day = -1;
+
+
+
 	int day = static_cast<int>(simStatus.getTime()+0.0000001);
 	if (day != prev_day)  {
 		prev_day = day;
 		prev_index = -1;
+
+//  	THIS TRIGGERS APPLICATION OF POLICY AFTER CROSSING 100 CASES PER DAY
+		if (totalCases > 100)  {
+			policyTime[1] = simStatus.getTime();
+		}
+//
 	}
 
 	int index = 1;
@@ -118,10 +137,74 @@ inline  int getMobilityDuration(double dist)  {
 
 
 
+/*
+void  loadFirstInfections()  {
+	std::ifstream  instream("county-level-data-byId.dat");
+	CSVReader csv( ',', '"' );
+	csv.removeQuotes( true );
+	csv.trimSpaces( true );
+	char line[65536];
+	std::vector<std::string>  vec;
+
+	// Build county popdistr;
+	std::vector< std::vector<double> >  countyPopDistr();  // double allows using extractFromDistribution
+	int maxCountyId = 0;
+	for (int ii = 0; ii < simStatus.getMaxX(); ii++)  {
+		for (int jj = 0; jj < simStatus.getMaxY(); jj++)  {
+			if (popMap[xx][yy] > 0)  {
+				id = idsMap[ii][jj];
+				if (maxCountyId < id)  {
+					maxCountyId = id;
+					countyPopDistr.resize( maxCountyId+1 );
+					if (countyPopDistr[id].size() == 0)  {
+						countyPopDistr[id].push_back( popMap[xx][yy] );
+					} else {
+						countyPopDistr[id].push_back( popMap[xx][yy] + countyPopDistr[id].back() );
+				}
+			}
+		}
+	}
 
 
-void  initMobility()  {
+	while (instream.good())  {
+		double time;
+		int target, agegroup, importedSymp, countyId;
+		instream.getline( line, 65536 );
+		vec = csv.getline( line );
+		time = atof(vec[1]);
+		agegroup = atol(vec[2]);
+		importedSymp = vec[3];
+		countyId = vec[12];
+		instream.peek();
+
+		target = static_cast<int>( RNG->get()*countyPopDistr[countyId].back() );
+		double rnd = RNG->get();
+		target = extractFromDistribution( rnd, countyPopDistr[countyId], countyPopDistr[countyId].size(), 1 );
+		int count = 0;
+		for (int ii = 0; ii < simStatus.getMaxX(); ii++)  {
+			for (int jj = 0; jj < simStatus.getMaxY(); jj++)  {
+				if (popMap[xx][yy] > 0)  {
+					id = idsMap[ii][jj];
+					if (id == countyId)  {
+						if (count == target)  {
+							lon = simStatus.getLongitude( ii );
+							lat = simStatus.getLatitude( jj );
+							for (int kk = 0; kk < importedSymp; kk++)  {
+								firstInfection.push_back( {time, 2.0, agegroup, lon, lat} );
+							}
+						}
+					}
+				}
+			}
+		}		
+	}
+}
+*/
+
+
+void  initCountrySpecific()  {
 	loadIdentifiers( identifiersFile );
+	//loadFirstInfections();
 }
 
 
@@ -131,8 +214,9 @@ std::vector<int>  lockdownCountyList = {
 	41, 47, 44, 46
 }; // 41-Nairobi, 47-Mombasa, 44-Kilifi, 46-Kwale
 bool  checkLockdown(int x0, int y0)  {
+	return false;
 	RandomGenerator *RNG = simStatus.getRandomGenerator();
-	if (simStatus.getTime() > policyTime[1])  {
+	if (policyTime.size() > 1 && simStatus.getTime() > policyTime[1])  {
 		if (std::find(lockdownCountyList.begin(), lockdownCountyList.end(), idsMap[x0][y0]) != lockdownCountyList.end())  {
 			return true;
 		}

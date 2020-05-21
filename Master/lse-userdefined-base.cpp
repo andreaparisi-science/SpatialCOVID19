@@ -615,13 +615,16 @@ bool  firstinfect( double type, double case_lon, double case_lat )  {
 	std::string prefix;
 
 	if (type == 0.0)  {
-		prefix = "Asy_";
-	} else if (type == 1.0)  {
-//	if (type == 1.0)  {
 		prefix = "Esp_";
-	} else if (type == 2.0)  {
+	} else if (type == 1.0)  {
 		prefix = "Inf_";
+	} else if (type == 2.0)  {
+		prefix = "Asy_";
 	} else if (type == 3.0)  {
+		prefix = "Esp_";
+	} else if (type == 4.0)  {
+		prefix = "Inf_";
+	} else if (type == 5.0)  {
 		prefix = "Asy_";
 	} else {
 		throw "Unknown type in firstinfect()";
@@ -736,7 +739,6 @@ void  accessCycle( int status )  {
 			firstInfBuffer.setBuffer( sizeof(int), 1 );
 			mainUniqueId = 10000000*simStatus.getProcessId();
 			simStatus.setDailyFractions( {8.0, 8.0+(45.0/7.0)} );
-			initMobility();
 			getAgeGroups();
 			buildAgeAssignments();
 			//getSusceptibility();
@@ -749,6 +751,7 @@ void  accessCycle( int status )  {
 #endif
 
 			updateContactMatrix();
+			initCountrySpecific();
 			break;
 
 		case CYCLE_START:
@@ -791,11 +794,15 @@ void  accessCycle( int status )  {
 			evalLocalParameters();
 			for (int jj = firstinfected; jj < firstInfections.size(); jj++)  {
 				if (firstInfections[firstinfected][1] == 0.0 && simStatus.getTime() >= firstInfections[firstinfected][0])  {
-					if (firstinfect( firstInfections[firstinfected][1], firstInfections[firstinfected][2], firstInfections[firstinfected][3] ))  {
+					if (firstinfect( firstInfections[firstinfected][1], firstInfections[firstinfected][3], firstInfections[firstinfected][4] ))  {
+						firstinfected++;
+					}
+				} else if (firstInfections[firstinfected][1] == 1.0 && simStatus.getTime() >= firstInfections[firstinfected][0])  {
+					if (firstinfect( firstInfections[firstinfected][1], firstInfections[firstinfected][3], firstInfections[firstinfected][4] ))  {
 						firstinfected++;
 					}
 				} else if (simStatus.getTime() >= params.t0+firstInfections[firstinfected][0])  {
-					if (firstinfect( firstInfections[firstinfected][1], firstInfections[firstinfected][2], firstInfections[firstinfected][3] ))  {
+					if (firstinfect( firstInfections[firstinfected][1], firstInfections[firstinfected][3], firstInfections[firstinfected][4] ))  {
 						firstinfected++;
 					}
 				// We ran out of first infections?  Then we do not need to worry anymore
@@ -1455,7 +1462,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			} while (in.good());
 			in.close();
 			tsduration = timeseries.size();
-			std::cout << "Loaded data for " << tsduration << " days.\n";
+			std::cout << "Loaded data for " << tsduration << " days.\n" << std::flush;
 
 			deryaRNG = simStatus.getRandomGenerator();
 			fitting.setRNG( deryaRNG );
@@ -1533,7 +1540,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 		case CYCLE_START:
 //			simStatus.setSimulationLength( nweeks * 7 + 1 );
 			if (simStatus.getTime() == 0.0 && params.Restart == 0)  {
-				std::cout << "Loading data from storage.\n";
+				std::cout << "Loading data from storage.\n" << std::flush;
 				MPI_Status  mpiStatus;
 
 				int size, sz;
@@ -1579,7 +1586,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 				params.Restart = 1;
 
 			} else if (simStatus.getTime() == 0.0 && hasrestarted) {
-				std::cout << "Saving data to storage.\n";
+				std::cout << "Saving data to storage.\n" << std::flush;
 				int  sz;
 
 				MPI_Status  mpiStatus;
@@ -1660,7 +1667,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 				for (int jj = 0; jj < paramTable.size(); jj++)  {
 					std::cout << paramNames[jj] << " " << trialParticle.parameters[jj] << ",";
 				}
-				std::cout << " -> " << params.t0 + timeseries.size() << "\n";
+				std::cout << " -> " << params.t0 + timeseries.size() << "\n" << std::flush;
 			}
 			fitting.acceptParticle(trialParticle);
 
@@ -1763,7 +1770,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 				hasrestarted = fitting.step( chiSquared );
 				if (hasrestarted)  {
 					if (simStatus.getProcessId() == 0)  {
-						std::cout << "Restarting in [Replica "+std::to_string( simStatus.getGlobalProcessId()/simStatus.getNumberOfProcesses() )+" ]\n";
+						std::cout << "Restarting in [Replica "+std::to_string( simStatus.getGlobalProcessId()/simStatus.getNumberOfProcesses() )+" ]\n" << std::flush;
 					}
 				}
 				countEvents = 0;
@@ -1811,7 +1818,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 				std::cout << " -> [" << (100.0*(ratio)) << "%] ";
 				ratio = fitting.getAcceptanceRatio( &accepted, &total );
 				std::cout << "  (LAST WAS) [" << (accepted) << "/" << (total) << "]";
-				std::cout << " -> [" << (100.0*(ratio)) << "%]\n";
+				std::cout << " -> [" << (100.0*(ratio)) << "%]\n" << std::flush;
 
 			}
 

@@ -161,7 +161,7 @@ inline  double getMobilityDuration(double dist)  {
 }
 
 
-inline  void  initMobility()  {
+inline  void  initCountrySpecific()  {
 	loadIdentifiers( identifiersFile );
 }
 
