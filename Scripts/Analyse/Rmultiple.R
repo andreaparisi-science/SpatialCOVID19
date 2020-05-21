@@ -18,6 +18,7 @@ for (jj in 1:length(directory))  {
 	header <- c("Day", "Hosp.cases", "ICU.cases", "Home.cases", "Asympt.cases", "Recovs", "Deaths", "Cases.cumul", "Asympt.cumul", "Hosp.occupancy", "ICU.occupancy", "Home.occupancy", "Ctrl1", "Ctrl2", "Deaths.cumul.0", "Deaths.cumul.5", "Deaths.cumul.10", "Deaths.cumul.15", "Deaths.cumul.20", "Deaths.cumul.25", "Deaths.cumul.30", "Deaths.cumul.35", "Deaths.cumu.40", "Deaths.cumul.45", "Deaths.cumul.50", "Deaths.cumul.55", "Deaths.cumul.60", "Deaths.cumul.65", "Deaths.cumul.70", "Deaths.cumul.75", "Deaths.cumul.80", "Deaths.cumul")
 	colnames(locdata) <- header
 	if (tail(locdata,1)$Asympt.cumul < 1000)  {
+		print( paste("Early extinction for [", directory[jj], "]", sep='') )
 		next
 	}
 	print(directory[jj])
@@ -43,6 +44,9 @@ for (jj in 1:length(directory))  {
 
 par(mar=c(5,5,4,3))
 
+
+# OCCUPANCY
+#
 pdf("occupancyWeekly.pdf", width=8, height=5)
 max.Hosp <- max( data$Hosp.occupancy )
 max.ICUs <- max( data$ICU.occupancy )
@@ -53,6 +57,19 @@ boxplot( Hosp.occupancy ~ Week, data = data, cex=0.7, col="darkolivegreen3", bor
 boxplot( ICU.occupancy ~ Week, data=data, col="orange", border="darkred", outline=FALSE, xaxt="n", yaxt="n", add=TRUE)
 legend(33, 0.9*max.vals, c("Hospital occupancy", "ICU occupancy"), fill=c("darkolivegreen4", "orange"), border=c("darkblue","darkred"), cex=1.2)
 
+
+
+# AGE DISTRIBUTION OF DEATHS
+#
+cumul <- unlist(tail(fulldata, 1)[15:31])
+pdf("deathsByAge.pdf", width=8, height=5)
+barplot(cumul, names.arg=c("0-4","5-9","10-14","15-19","20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"),
+			main="Expected number of deaths by age", cex.axis = 1.2, cex.lab=1.2, cex.main=1.4)
+
+
+
+# DAILY INCIDENCE
+#
 fulldata$cases.val <- fulldata$ICU.cases + fulldata$Hosp.cases + fulldata$Home.cases
 gfulldata <- group_by(fulldata, Day)
 fulldata <- summarise(gfulldata, cases.max=quantile(cases.val, prob=0.975), cases.min=quantile(cases.val, prob=0.025), cases.median=quantile(cases.val, prob=0.5))
@@ -79,9 +96,4 @@ lines(fulldata$Day, fulldata$cases.median, col="blue", lwd=1)
 # 	main="Daily number of cases", cex.main=1.4)
 # #legend(220, 20000, c("Total cases"), col=c("black"), lty=1, lwd=2, cex=1.2)
  
-# cumul <- unlist(tail(data, 1)[13:29])
-# pdf("deathsByAge.pdf", width=8, height=5)
-# barplot(cumul, names.arg=c("0-4","5-9","10-14","15-19","20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"),
-# 			main="Expected number of deaths by age", cex.axis = 1.2, cex.lab=1.2, cex.main=1.4)
-
 
