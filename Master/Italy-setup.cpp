@@ -192,7 +192,7 @@ inline  void  initCountrySpecific()  {
 
 
 bool  checkLockdown(int x0, int y0)  {
-	false;
+	return  false;
 }
 
 // FITTING  PROTOTYPE FOR GENERALIZATION
