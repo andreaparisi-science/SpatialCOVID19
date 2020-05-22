@@ -9,6 +9,7 @@
 
 #include "SplineInterpolator.h"
 #include "Policy.h"
+#include "Intervention.h"
 
 #ifdef FITTING
 #warning( "Macro FITTING was defined." )
@@ -44,19 +45,6 @@ static double constexpr  R0_FAMILY_MULTIPLIER   = 1.17212;
 
 
 int constexpr ISOLATE_GAPDAYS = 3;   // Gap days from probable case detection to isolation of traced individuals
-
-enum  {	POLICY_TRACING_PROB = 0,		// Contact tracing probability
-		POLICY_SOCIALDIST_PROB, 		// Generalized reduction of social interactions
-		POLICY_TRAVELREDUCTION, 		// Reduction of local travel intensity
-		POLICY_TRAVELRED_ADMIN, 		// Reduction of inter-admin travel intensity
-		POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for eldest (non-working)
-		POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
-		POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
-		POLICY_FAMILY_TRANSMIT, 		// Increase in family transmission
-		POLICY_STAYATHOME_FULL, 		// Whether stay-at-home for younger and older means avoiding all social contacts (ex. no shopping at all)
-		POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
-		POLICY_TYPE_LAST
-};
 
 static bool tracingOn = true;   // Flags if tracing is being carried on (this should be always on, except for fast runs with no tracing)
 static int  totalCases = 0;     // Process total number of cases
@@ -670,8 +658,8 @@ bool  firstinfect( double type, double case_lon, double case_lat )  {
 
 void  initPolicyParams()  {
 	int maxval = 0;
-	for (int jj = 0; jj < policyApplication.size(); jj++)  {
-		if (maxval < policyApplication[jj])  maxval = policyApplication[jj];
+	for (int jj = 0; jj < interventions.size(); jj++)  {
+		if (maxval < interventions[jj].getExtent())  maxval = interventions[jj].getExtent();
 	}
 	TRACING_PROB.assign(maxval+1, 0.0);
 	SOCIALDIST_PROB.assign(maxval+1, 0.0); // [1..3] Current values at the different extent levels (above). [0] Current value in grid element
@@ -686,7 +674,7 @@ void  initPolicyParams()  {
 }
 
 
-
+/*
 void  addAllPolicies( PolicyQueue &queue )  {
 	for (int jj = 0; jj < policyParams.size(); jj++)  {
 		for (int kk = 0; kk < policyParams[jj].size(); kk++)  {
@@ -725,7 +713,7 @@ void  addAllPolicies( PolicyQueue &queue )  {
 		}
 	}
 }
-
+*/
 
 
 void  accessCycle( int status )  {
@@ -768,7 +756,8 @@ void  accessCycle( int status )  {
 			initPolicyParams();
 			resetCounters();
 			queue.clear();
-			addAllPolicies( queue );
+//			addAllPolicies( queue );
+			for (auto it = interventions.begin(); it != interventions.end(); it++)  queue.addPolicy( &(*it) );
 #ifndef FITTING
 			queue.setStart( params.t0 );
 #endif

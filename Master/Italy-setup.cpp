@@ -51,11 +51,49 @@ std::vector<int>  yellow_provinces = {16, 17, 13, 19, 75, 98, 20, 15, 108, 18, 1
 //                       into account by the increased reduction from 9th to 22nd (2 weeks). Data shows that reduction effectively was already achieved
 //						 in 10 days (Google)
 //
-//  POLICY IDENTIFIERS
-enum  {POLICY_24thFeb = 0, POLICY_01stMar, POLICY_04thMar, POLICY_09thMar, POLICY_LAST};
-//	POLICY_SOCIALDIST_PROB = 0, 	// Generalized reduction of social interactions
+
+enum  {EXTENT_LOCAL = 1, EXTENT_PROVINCE, EXTENT_NATIONAL};
+std::vector<Intervention>	interventions = {
+	Intervention( POLICY_TRACING_PROB,    EXTENT_LOCAL,   8,  0, 1.00 ),  // 24th Feb (lockdown local to some municipalities)
+	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_LOCAL,   8,  0, 0.80 ),
+	Intervention( POLICY_TRAVELREDUCTION, EXTENT_LOCAL,   8,  0, 0.90 ),
+	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_LOCAL,   8,  0, 0.80 ),
+	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_LOCAL,   8,  0, 0.80 ),
+	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_LOCAL,   8,  0, 0.80 ),
+	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_LOCAL,   8,  0, 2.00 ),
+	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_LOCAL,   8,  0, 1.00 ),
+
+	Intervention( POLICY_TRACING_PROB,    EXTENT_PROVINCE, 14,  0, 1.00 ),  //  1st Mar (restriction local to yellow provinces)
+	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_PROVINCE, 14,  0, 0.25 ),
+	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_PROVINCE, 14,  0, 0.20 ),
+	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_PROVINCE, 14,  0, 0.20 ),
+	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_PROVINCE, 14,  0, 0.20 ),
+	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_PROVINCE, 14,  0, 2.00 ),
+	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_PROVINCE, 14,  0, 1.00 ),
+
+	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_NATIONAL, 17,  0, 1.00 ),  //  4th Mar (nationwide school closures)
+	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_NATIONAL, 17,  0, 2.00 ),
+	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL, 17,  0, 0.00 ),  //  - Testing was at this stage only in hospital cases
+	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_NATIONAL, 17,  5, 0.20 ),  //  - Reduction reflect google trends data
+	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_NATIONAL, 17,  5, 0.20 ),
+	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_NATIONAL, 17,  5, 0.20 ),
+	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_NATIONAL, 17,  5, 0.20 ),
+
+	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL, 22,  0, 0.00 ),  //  9th Mar (nationwide lockdown)
+	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_NATIONAL, 22,  7, 0.90 ),  //  Increases in social distancing and isolation follows data from google trends
+	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_NATIONAL, 22,  7, 0.80 ),
+	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_NATIONAL, 22,  7, 0.80 ),
+	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_NATIONAL, 22,  7, 0.80 ),
+	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_NATIONAL, 22,  0, 2.00 ),
+	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_NATIONAL, 22,  0, 1.00 ),
+
+	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL, 52, 10, 1.00 ),  //  ~7 April - 10 days increses in testing with new test-isolate policy
+};
+
+//	POLICY_TRACING_PROB = 0,		// Contact tracing probability
+//	POLICY_SOCIALDIST_PROB, 		// Generalized reduction of social interactions
 //	POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
-//	POLICY_TRAVELADMIN_RED,			// Reduction of travel between counties
+//	POLICY_TRAVELRED_ADMIN, 		// Reduction of travel intensity
 //	POLICY_STAYATHOME_AGE, 			// Compliance of stay at home for oldest (non-working)
 //	POLICY_STAYATHOME_OTH, 			// Compliance of stay at home for working individuals
 //	POLICY_STAYATHOME_SCH, 			// Compliance of stay at home for school-aged individuals
@@ -63,26 +101,10 @@ enum  {POLICY_24thFeb = 0, POLICY_01stMar, POLICY_04thMar, POLICY_09thMar, POLIC
 //	POLICY_STAYATHOME_FULL, 		// Whether stay-at-home for younger and older means avoiding all social contacts (ex. no shopping at all)
 //	POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
 
-// Parameters for each of the above policies. Rows indicate distinct policy packages, columns indicate distinct policy actions
-std::vector< std::array<double, 10> >  policyParams = {  // 4 packages, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
-	{1.00, 0.80, 0.9, 0.0, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0},  // 24th Feb (lockdown local to some municipalities)
-	{1.00, 0.25, 0.0, 0.0, 0.2, 0.2, 0.2, 2.0, 0.0, 1.0},  //  1st Mar (restriction local to yellow provinces)
-	{0.00, 0.20, 0.2, 0.0, 0.2, 0.2, 0.2, 2.0, 0.0, 1.0},  //  4th Mar (nationwide school closures)
-	{0.00, 0.90, 0.0, 0.0, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0},  //  9th Mar (nationwide lockdown)
-	{0.80, 0.90, 0.0, 0.0, 0.8, 0.8, 0.8, 2.0, 0.0, 1.0}   //  ~7 Aprile - 10 days increase in testing
-};
-std::vector<double>  policyTime = {8, 14, 17, 22, 52};  // Days of application from day zero.
-std::vector< std::array<double, 10> >  policyDuration = {  // Duration of actions. Again, rows indicate distinct packages, columns distinct actions
-	{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-	{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-	{ 0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 0.0, 0.0, 0.0},
-	{ 0.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 0.0, 0.0, 0.0},
-	{10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-};
-std::vector<int>  policyApplication = {1, 2, 3, 3, 3};  // Type and extent of policy: 1- initial outbreak areas(Lodi); 2- Regional (provinces); 3- Nationwide; 0- applied value
+
 
 // Time; Type (1.0 -> Exp, 2.0 -> Inf, 3.0 -> Asy; Lon; Lat;
-std::vector< std::vector<double> >  firstInfections(1, {0.0, 0.0, 9.705, 45.16});
+std::vector< std::vector<double> >  firstInfections(1, {0.0, 0.0, 0.0, 9.705, 45.16});
 
 
 std::vector< std::vector<int> >    idsMap;
@@ -110,7 +132,7 @@ void	evalLocalParameters()  {
 		prev_index = -1;
 	}
 
-	int index = 3;
+	int index = EXTENT_NATIONAL;
 //		45,2180  9.6949
 //		45.1537  9.6959
 	// Presume to apply nationwide values;
@@ -118,11 +140,11 @@ void	evalLocalParameters()  {
 	int yy = simStatus.getY();
 	int provinceId = idsMap[xx][yy];
 	if (std::find( yellow_provinces.begin(), yellow_provinces.end(), provinceId ) != yellow_provinces.end() && simStatus.getTime() < params.t0+policyTime[3])  {
-		index = 2;
+		index = EXTENT_PROVINCE;
 	}
 	if ((simStatus.getX() - simStatus.getXfromLongitude(9.6954)) == 0 && simStatus.getTime() < params.t0+policyTime[3])  {
 		if (((simStatus.getY() - simStatus.getYfromLatitude(45.2180)) == 0) || ((simStatus.getY() - simStatus.getYfromLatitude(45.1537)) == 0))  {
-			index = 1;
+			index = EXTENT_LOCAL;
 		}
 	}
 	// To be applied only if required, otherwise values are already correct

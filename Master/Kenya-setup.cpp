@@ -7,6 +7,17 @@ static  std::string  ageGroupEsriFile  = "../../../Data/Kenya/Setup/Kenya_%dkm_%
 static  std::string  identifiersFile   = "../../../Data/Kenya/Maps/Kenya_%dkm_ids.asc";
 static  std::string  timeseriesFile    = "../../../Data/Kenya/Kenya_timeseries.dat";
 
+enum  {EXTENT_NATIONAL = 1};
+std::vector<Intervention>	interventions = {
+	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_NATIONAL,   1000000.0, 14, 0.75 ),
+	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_NATIONAL,   1000000.0,  0, 1.00 ),
+	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_NATIONAL,   1000000.0,  0, 1.75 ),
+	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_NATIONAL,   1000000.0, 14, 0.30 ),
+	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_NATIONAL,   1000000.0, 14, 0.90 ),
+	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_NATIONAL,   1000000.0, 14, 0.80 ),
+	Intervention( POLICY_STAYATHOME_FULL, EXTENT_NATIONAL,   1000000.0,  0, 1.00 )
+};
+
 //	POLICY_TRACING_PROB = 0,		// Contact tracing probability
 //	POLICY_SOCIALDIST_PROB, 		// Generalized reduction of social interactions
 //	POLICY_TRAVELREDUCTION, 		// Reduction of travel intensity
@@ -18,28 +29,6 @@ static  std::string  timeseriesFile    = "../../../Data/Kenya/Kenya_timeseries.d
 //	POLICY_STAYATHOME_FULL, 		// Whether stay-at-home for younger and older means avoiding all social contacts (ex. no shopping at all)
 //	POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
 
-// Parameters for each of the above policies. Rows indicate distinct policy packages, columns indicate distinct policy actions
-std::vector< std::array<double, 10> >  policyParams = {  // 4 policies, each with 8 params/actions (POLICY_TYPE_LAST == 8 and POLICY_LAST == 4).
-//	{1.00, 0.45, 0.10, 0.0, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00},
-//	{1.00, 0.45, 0.10, 0.9, 0.0, 0.30,  0.0, 1.75, 0.0, 1.00}
-	{0.00, 0.00, 0.00, 0.0, 0.0, 0.00, 0.00, 1.00, 0.00, 0.00},
-	{0.00, 0.00, 0.00, 0.0, 0.0, 0.00, 0.00, 1.00, 0.00, 0.00}
-};
-// Leave here!
-std::vector<double>  policyTime = {
-//	8, 32
-	0, 1000000
-};    // Days of application from day zero.
-std::vector< std::array<double, 10> >  policyDuration = {  // Duration of actions. Again, rows indicate distinct packages, columns distinct actions
-//	{ 0, 14, 14, 14, 14, 14, 14, 14, 14,  8},
-//	{ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0}
-	{ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0},
-	{ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0}
-};
-std::vector<int>  policyApplication = {
-//	1, 1
-	1, 1
-}; // Type and extent of policy: 1-Global; 0- applied value
 
 std::vector< std::vector<double> >  firstInfections = {
 	{0.0, 0.0, -1.0, 36.8172, -1.2864}//,  // First absolute
@@ -79,6 +68,7 @@ void  loadIdentifiers( const std::string datafile )  {
 void	evalLocalParameters()  {
 	static int  prev_index = -1;
 	static int  prev_day = -1;
+	static bool  needsUpdating = true;
 
 
 
@@ -88,8 +78,13 @@ void	evalLocalParameters()  {
 		prev_index = -1;
 
 //  	THIS TRIGGERS APPLICATION OF POLICY AFTER CROSSING 100 CASES PER DAY
-		if (totalCases > 100)  {
-			policyTime[1] = simStatus.getTime();
+		if (needsUpdating && totalCases > 100)  {
+			for (int jj = 0; jj < interventions.size(); jj++)  {
+				if (interventions[jj].getEndTime() >= 10000)  {
+					interventions[jj].setActivationTime( simStatus.getTime() );
+				}
+			}
+			needsUpdating = false;
 		}
 //
 	}
@@ -215,8 +210,7 @@ std::vector<int>  lockdownCountyList = {
 }; // 41-Nairobi, 47-Mombasa, 44-Kilifi, 46-Kwale
 bool  checkLockdown(int x0, int y0)  {
 	return false;
-	RandomGenerator *RNG = simStatus.getRandomGenerator();
-	if (policyTime.size() > 1 && simStatus.getTime() > policyTime[1])  {
+	if (policy.size() > 1 && simStatus.getTime() > policyTime[1])  {
 		if (std::find(lockdownCountyList.begin(), lockdownCountyList.end(), idsMap[x0][y0]) != lockdownCountyList.end())  {
 			return true;
 		}

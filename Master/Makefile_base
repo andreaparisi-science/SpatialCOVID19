@@ -15,6 +15,7 @@ write:
 	\rm -f ./.tauleap
 	g++ -c SplineInterpolator.cpp
 	g++ -c Policy.cpp
+	g++ -c Intervention.cpp
 	python3 generate.py ${COUNTRY} Write > CoV.lse
 	echo GRIDRES:=${GRIDRES}  > Makefile_make
 	echo COUNTRY:=${COUNTRY} >> Makefile_make
@@ -29,6 +30,7 @@ runs:
 	\rm -f ./.tauleap
 	g++ -c SplineInterpolator.cpp
 	g++ -c Policy.cpp
+	g++ -c Intervention.cpp
 	python3 generate.py ${COUNTRY} Read > CoV.lse
 	echo GRIDRES:=${GRIDRES}  > Makefile_make
 	echo COUNTRY:=${COUNTRY} >> Makefile_make
@@ -44,6 +46,7 @@ fits:
 	\rm -f ./.tauleap
 	g++ -c SplineInterpolator.cpp
 	g++ -c Policy.cpp
+	g++ -c Intervention.cpp
 	python3 generate.py ${COUNTRY} Read > CoV.lse
 	echo GRIDRES:=${GRIDRES}  > Makefile_make
 	echo COUNTRY:=${COUNTRY} >> Makefile_make
