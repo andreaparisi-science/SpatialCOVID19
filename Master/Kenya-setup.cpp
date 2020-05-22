@@ -209,12 +209,11 @@ std::vector<int>  lockdownCountyList = {
 	41, 47, 44, 46
 }; // 41-Nairobi, 47-Mombasa, 44-Kilifi, 46-Kwale
 bool  checkLockdown(int x0, int y0)  {
-	return false;
-	if (policy.size() > 1 && simStatus.getTime() > policyTime[1])  {
-		if (std::find(lockdownCountyList.begin(), lockdownCountyList.end(), idsMap[x0][y0]) != lockdownCountyList.end())  {
-			return true;
-		}
-	}
+//	if (policy.size() > 1 && simStatus.getTime() > policyTime[1])  {
+//		if (std::find(lockdownCountyList.begin(), lockdownCountyList.end(), idsMap[x0][y0]) != lockdownCountyList.end())  {
+//			return true;
+//		}
+//	}
 	return false;
 }
 

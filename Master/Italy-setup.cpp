@@ -51,6 +51,7 @@ std::vector<int>  yellow_provinces = {16, 17, 13, 19, 75, 98, 20, 15, 108, 18, 1
 //                       into account by the increased reduction from 9th to 22nd (2 weeks). Data shows that reduction effectively was already achieved
 //						 in 10 days (Google)
 //
+Intervention  nationwideLockdown;
 
 enum  {EXTENT_LOCAL = 1, EXTENT_PROVINCE, EXTENT_NATIONAL};
 std::vector<Intervention>	interventions = {
@@ -79,7 +80,8 @@ std::vector<Intervention>	interventions = {
 	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_NATIONAL, 17,  5, 0.20 ),
 	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_NATIONAL, 17,  5, 0.20 ),
 
-	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL, 22,  0, 0.00 ),  //  9th Mar (nationwide lockdown)
+		nationwideLockdown = // assignment within assignment, for specific referencing elsewhere
+	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL, 22,  0, 0.00 ), //  9th Mar (nationwide lockdown)
 	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_NATIONAL, 22,  7, 0.90 ),  //  Increases in social distancing and isolation follows data from google trends
 	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_NATIONAL, 22,  7, 0.80 ),
 	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_NATIONAL, 22,  7, 0.80 ),
@@ -139,10 +141,10 @@ void	evalLocalParameters()  {
 	int xx = simStatus.getX() % simStatus.getMaxX();
 	int yy = simStatus.getY();
 	int provinceId = idsMap[xx][yy];
-	if (std::find( yellow_provinces.begin(), yellow_provinces.end(), provinceId ) != yellow_provinces.end() && simStatus.getTime() < params.t0+policyTime[3])  {
+	if (std::find( yellow_provinces.begin(), yellow_provinces.end(), provinceId ) != yellow_provinces.end() && simStatus.getTime() < params.t0+nationwideLockdown.getActivationTime())  {
 		index = EXTENT_PROVINCE;
 	}
-	if ((simStatus.getX() - simStatus.getXfromLongitude(9.6954)) == 0 && simStatus.getTime() < params.t0+policyTime[3])  {
+	if ((simStatus.getX() - simStatus.getXfromLongitude(9.6954)) == 0 && simStatus.getTime() < params.t0+nationwideLockdown.getActivationTime())  {
 		if (((simStatus.getY() - simStatus.getYfromLatitude(45.2180)) == 0) || ((simStatus.getY() - simStatus.getYfromLatitude(45.1537)) == 0))  {
 			index = EXTENT_LOCAL;
 		}

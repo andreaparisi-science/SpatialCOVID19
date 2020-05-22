@@ -110,8 +110,9 @@ void  shareOutputData();
 void  doFitting(int, PolicyQueue&);
 
 
-#define  Kenya 1
-#define  Italy 2
+#define  Test  -1
+#define  Italy  1
+#define  Kenya  2
 
 #ifndef  COUNTRY
 #error   COUNTRY is not defined.  Use '--define COUNTRY=XXX'  where  XXX is an implemented country.
