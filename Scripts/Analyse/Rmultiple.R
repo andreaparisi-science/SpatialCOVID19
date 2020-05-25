@@ -12,6 +12,7 @@ if (length(args) == 2)  {
 }
 
 kk <- 1
+cumul <- data.frame()
 for (jj in 1:length(directory))  {
 	if (jj > limit)  break
 	locdata <- read.table(paste(directory[jj],"DeryaSE-summary-Daily.dat", sep="/"), header=FALSE)
@@ -28,16 +29,20 @@ for (jj in 1:length(directory))  {
 	locdata$Day <- locdata$Day-(startDate)
 	if (kk == 1)  {
 		fulldata <- locdata
+		cumul <- data.frame( tail(locdata, 1)[15:31] )
 	} else  {
 		fulldata <- rbind(fulldata, locdata)
+		cumul <- rbind(cumul, data.frame(tail(locdata, 1)[15:31]) )
 	}
 	locdata$Week = floor((locdata$Day-1)/7)+1
 	glocdata <- group_by(locdata, Week)
 	locdata <- summarise(glocdata, Hosp.occupancy=max(Hosp.occupancy), ICU.occupancy=max(ICU.occupancy))
 	if (kk == 1)  {
 		data <- locdata
+		stats <- data.frame( Hosp.occupancy = max(locdata$Hosp.occupancy), ICU.occupancy = max(locdata$ICU.occupancy) )
 	} else  {
 		data <- rbind(data, locdata)
+		stats <- rbind( stats, data.frame( Hosp.occupancy = max(locdata$Hosp.occupancy), ICU.occupancy = max(locdata$ICU.occupancy) ) )
 	}
 	kk <- kk+1
 }
@@ -61,12 +66,18 @@ legend(33, 0.9*max.vals, c("Hospital occupancy", "ICU occupancy"), fill=c("darko
 
 # AGE DISTRIBUTION OF DEATHS
 #
-cumul <- unlist(tail(fulldata, 1)[15:31])
+#cumul <- unlist(tail(fulldata, 1)[15:31])
+cumul  <- as.matrix(cumul)
+mean   <- apply(cumul, 2, mean)
+stddev <- apply(cumul, 2, sd)
 pdf("deathsByAge.pdf", width=8, height=5)
-barplot(cumul, names.arg=c("0-4","5-9","10-14","15-19","20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"),
-			main="Expected number of deaths by age", cex.axis = 1.2, cex.lab=1.2, cex.main=1.4)
-
-
+max.y  <- max(mean+2.05*stddev)  # This avoid thinning of highest error bar
+centers <- barplot(mean, names.arg=c("0-4","5-9","10-14","15-19","20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"),
+			main="Expected number of deaths by age", cex.axis = 1.2, cex.lab=1.2, cex.main=1.4, ylim = c(0,max.y))
+#segments(centers, mean-1.96*stddev, centers, mean+1.96*stddev, lwd=1.5)
+arrows(centers, mean, centers, mean-1.96*stddev, angle=90, lwd=1.5, length=0.08)
+arrows(centers, mean, centers, mean+1.96*stddev, angle=90, lwd=1.5, length=0.08)
+write( c(sum(mean), sum(mean-1.96*stddev), sum(mean+1.96*stddev)), file="deathCount.pdf" )
 
 # DAILY INCIDENCE
 #
@@ -96,4 +107,5 @@ lines(fulldata$Day, fulldata$cases.median, col="blue", lwd=1)
 # 	main="Daily number of cases", cex.main=1.4)
 # #legend(220, 20000, c("Total cases"), col=c("black"), lty=1, lwd=2, cex=1.2)
  
+
 

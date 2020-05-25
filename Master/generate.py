@@ -102,7 +102,8 @@ outputParams += "\tt0\t\tNone\t"+str(simList['Default']['t0'])+"\n"
 outputParams += "\teta\t\tNone\t1.0\n"
 outputParams += "\tR0\t\tNone\t" + str(simList['Default']['R0']) + "\n"
 outputParams += "\tsigma\tNone\t"+str(simList['Default']['sigma'])+"\n"
-#outputParams += "\tomega\tNone\t1.0/2.0\n"
+outputParams += "\tomega\tNone\t"+str(simList['Default']['omega'])+"\n"
+outputParams += "\tsomega\tNone\t1\n"
 outputParams += "\tgamma\tNone\t"+str(simList['Default']['gamma'])+"\n"
 outputParams += "\trho\tNone\t1.0/3.0\n"
 outputParams += "\tbeta\tNone\tR0*gamma\n"
@@ -193,6 +194,7 @@ elif simList['Default']['model'] == 'consensus':
 #			outputTrans += "\n"
 
 	for xx in range(0, nAgeGroups):
+		outputTrans += "\tSus_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(First)\timportedCase\tNone\tsomega\n"
 		outputTrans += "\tEsp_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(Next)\tNone\tNone\t$Esp_"+str(xx)+"*sigma\n"
 		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tInf_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*zz_"+str(xx)+"\n"
 		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tAsy_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*(1-zz_"+str(xx)+")\n"

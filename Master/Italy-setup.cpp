@@ -4,6 +4,7 @@ static  std::string  ageGroupEsriFile  = "../../../Data/Italy/Setup/Italy_%dkm_%
 static  std::string  identifiersFile   = "../../../Data/Italy/Maps/Italy_%dkm_ids.asc";
 static  std::string  timeseriesFile    = "../../../Data/Italy/Italy_timeseries.dat";
 
+static  std::string  importedCasesFile = "../../../Data/Italy/Private/distrCases_byId.dat";
 // ITALY DATA
 //
 // 16th Feb first case (when the 1st detected appeared in hospital the first time)
@@ -55,14 +56,16 @@ Intervention  nationwideLockdown;
 
 enum  {EXTENT_LOCAL = 1, EXTENT_PROVINCE, EXTENT_NATIONAL};
 std::vector<Intervention>	interventions = {
-	Intervention( POLICY_TRACING_PROB,    EXTENT_LOCAL,   8,  0, 1.00 ),  // 24th Feb (lockdown local to some municipalities)
-	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_LOCAL,   8,  0, 0.80 ),
-	Intervention( POLICY_TRAVELREDUCTION, EXTENT_LOCAL,   8,  0, 0.90 ),
-	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_LOCAL,   8,  0, 0.80 ),
-	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_LOCAL,   8,  0, 0.80 ),
-	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_LOCAL,   8,  0, 0.80 ),
-	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_LOCAL,   8,  0, 2.00 ),
-	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_LOCAL,   8,  0, 1.00 ),
+	Intervention( POLICY_TRACING_PROB,    EXTENT_LOCAL,     8,  0, 1.00 ),  // 24th Feb (lockdown local to some municipalities)
+	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_LOCAL,     8,  0, 0.80 ),
+	Intervention( POLICY_TRAVELREDUCTION, EXTENT_LOCAL,     8,  0, 0.90 ),
+	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_LOCAL,     8,  0, 0.80 ),
+	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_LOCAL,     8,  0, 0.80 ),
+	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_LOCAL,     8,  0, 0.80 ),
+	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_LOCAL,     8,  0, 2.00 ),
+	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_LOCAL,     8,  0, 1.00 ),
+
+	Intervention( POLICY_REDUCE_INFLIGHT, EXTENT_NATIONAL, 10, 12, 1.00 ),
 
 	Intervention( POLICY_TRACING_PROB,    EXTENT_PROVINCE, 14,  0, 1.00 ),  //  1st Mar (restriction local to yellow provinces)
 	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_PROVINCE, 14,  0, 0.25 ),
@@ -108,8 +111,8 @@ std::vector<Intervention>	interventions = {
 // Time; Type (1.0 -> Exp, 2.0 -> Inf, 3.0 -> Asy; Lon; Lat;
 std::vector< std::vector<double> >  firstInfections(1, {0.0, 0.0, 0.0, 9.705, 45.16});
 
-
 std::vector< std::vector<int> >    idsMap;
+int   maxId = 0;
 void  loadIdentifiers( const std::string datafile )  {
 	char ch_filename[256];
 	std::string  filename;
@@ -120,6 +123,13 @@ void  loadIdentifiers( const std::string datafile )  {
 	idsMap.resize( data.ncols );
 	for (int jj = 0; jj < data.ncols; jj++)  idsMap[jj].resize( data.nrows, 0 );
 	reader.readFile( 1.0, idsMap );
+	for (int ii = 0; ii < data.ncols; ii++)  {
+		for (int jj = 0; jj < data.nrows; jj++)  {
+			if (maxId < idsMap[ii][jj])  {
+				maxId = idsMap[ii][jj];
+			}
+		}
+	}
 }
 
 
@@ -162,6 +172,7 @@ void	evalLocalParameters()  {
 			FAMILY_TRANSMIT[0] = FAMILY_TRANSMIT[index];
 			STAYATHOME_FULL[0] = STAYATHOME_FULL[index];
 			SCHOOL_CLOSURE[0]  = SCHOOL_CLOSURE[index];
+			REDUCE_INFLIGHT[0] = REDUCE_INFLIGHT[index];
 		}
 
 #ifndef  MODEL_FAMILY
@@ -171,10 +182,64 @@ void	evalLocalParameters()  {
 		params.school	= 1.0-SCHOOL_CLOSURE[0];
 		params.other	= 1.0-SOCIALDIST_PROB[0];
 		params.mobility = 1.0-TRAVELREDUCTION[0];
+		params.omega	= 1.0-REDUCE_INFLIGHT[0];
 		updateContactMatrix();
 		prev_index = index;
 	}
 
+}
+
+
+
+std::vector< std::vector<double> >  importProbs;  
+void  loadImportProbs()  {
+	std::ifstream  instream( importedCasesFile );
+	int nAgeGroups = groups[ groups.size()-1 ] + 1;
+	int  ids, age;
+	double dummy, prob;
+
+	importProbs.resize( maxId+1 );
+	for (int jj = 1; jj <= maxId; jj++)  {
+		importProbs[jj].resize( nAgeGroups, 0.0 );
+	}
+	while (instream.good())  {
+		instream >> ids;
+		if (instream.eof())  break;
+		instream >> prob;
+
+//std::cout << "***** " << maxId << " " << ids << " "  << age << "\n" << std::flush;
+		for (int age = 0; age < nAgeGroups; age++)  {
+			importProbs[ids][age] = prob;
+		}
+//		instream.peek();
+	}
+}
+
+
+bool  importedCase()  {
+	RandomGenerator *RNG = simStatus.getRandomGenerator();
+	int classId = simStatus.getCurrentIndividualClass();
+	int age = ageNames[ classId ];
+	int xx  = simStatus.getX() % simStatus.getMaxX();
+	int yy  = simStatus.getY();
+	int ids = idsMap[xx][yy];
+	if (ids == 0)  simStatus.abort("IDS is ZERO");
+	if (RNG->get() < importProbs[ids][age])  {
+		return true;
+	}
+	return false;
+}
+
+
+int  ximportedCase( int nn )  {
+	RandomGenerator *RNG = simStatus.getRandomGenerator();
+	int classId = simStatus.getCurrentIndividualClass();
+	int age = ageNames[ classId ];
+	int xx  = simStatus.getX() % simStatus.getMaxX();
+	int yy  = simStatus.getY();
+	int ids = idsMap[xx][yy];
+	if (ids == 0)  simStatus.abort("IDS is ZERO");
+	return  RNG->binomial( nn, importProbs[ids][age] );
 }
 
 
@@ -187,18 +252,19 @@ inline  double getMobilityDuration(double dist)  {
 
 inline  void  initCountrySpecific()  {
 	loadIdentifiers( identifiersFile );
+	loadImportProbs();
 }
-
 
 
 bool  checkLockdown(int x0, int y0)  {
 	return  false;
 }
 
+
 // FITTING  PROTOTYPE FOR GENERALIZATION
 //enum {PARAM_T0 = 0x01, PARAM_R0 = 0x02, PARAM_GAMMA = 0x04, PARAM_TRACING = 0x08};
 //enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
-std::vector< int >  inputTable = {DATA_DUMMY, DATA_CASES, DATA_DEATHS};
-std::vector< int >  paramTable = {PARAM_T0, PARAM_R0};
-std::vector< int >  distsTable = {DATA_CASES};
+std::vector< int >  inputTable = {DATA_CASES, DATA_DEATHS};
+std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_GAMMA, PARAM_OMEGA};
+std::vector< int >  distsTable = {DATA_DEATHS};
 

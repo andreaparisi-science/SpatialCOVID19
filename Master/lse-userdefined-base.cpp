@@ -46,7 +46,11 @@ static double constexpr  R0_FAMILY_MULTIPLIER   = 1.17212;
 
 int constexpr ISOLATE_GAPDAYS = 3;   // Gap days from probable case detection to isolation of traced individuals
 
+#ifdef  TAULEAP
+static bool tracingOn = false;   // Flags if tracing is being carried on (this should be always on, except for fast runs with no tracing)
+#else
 static bool tracingOn = true;   // Flags if tracing is being carried on (this should be always on, except for fast runs with no tracing)
+#endif
 static int  totalCases = 0;     // Process total number of cases
 static int  cumulCases = 0;     // Process cumul number of cases
 static int  gcumulCases = 0;    // Global cumul number of cases (for output)
@@ -66,6 +70,7 @@ std::vector<double>  STAYATHOME_SCH;
 std::vector<double>  FAMILY_TRANSMIT;
 std::vector<double>  STAYATHOME_FULL;
 std::vector<double>  SCHOOL_CLOSURE;
+std::vector<double>  REDUCE_INFLIGHT;
 
 static  std::set<int>  contactEvents;
 static  std::map<int, int>  ageNames;  // from class to age group
@@ -82,7 +87,7 @@ std::vector<int> ages   = {0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 
 std::vector<int> groups = {0, 0, 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16};
 
 // Fitting macros
-enum {PARAM_T0 = 1, PARAM_R0, PARAM_GAMMA, PARAM_TRACING, PARAM_TAU, PARAM_ZMAX};
+enum {PARAM_T0 = 1, PARAM_R0, PARAM_GAMMA, PARAM_TRACING, PARAM_TAU, PARAM_ZMAX, PARAM_OMEGA};
 enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS, DATA_DUMMY};
 
 std::vector< std::vector< std::vector<double> > > baseMap;
@@ -365,9 +370,9 @@ void  init()  {
 	data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
 	if (data == nullptr)  {
 		data = indivDataFactory();
+		simStatus.setIndividualData( indivId, classId, data );
 	}
 	data->init();
-	simStatus.setIndividualData( indivId, classId, data );
 #endif
 
 	// If this is a new grid cell, build age distribution
@@ -402,6 +407,7 @@ void  init()  {
 
 
 
+#ifndef  TAULEAP
 bool  infect(int indivId, int classId, Infos* data)  {
 	static std::vector<int>  infClasses;
 	static bool first = true;
@@ -592,6 +598,13 @@ bool  moveToInfect()  {
 }
 
 
+#else  // if def TAULEAP
+
+// Defined below.  See end of file
+
+#endif
+
+
 
 bool  firstinfect( double type, double case_lon, double case_lat )  {
 	int  constexpr  MINAGEGROUP = 7;
@@ -672,49 +685,9 @@ void  initPolicyParams()  {
 	FAMILY_TRANSMIT.assign(maxval+1, 1.0);
 	STAYATHOME_FULL.assign(maxval+1, 0.0);
 	SCHOOL_CLOSURE.assign(maxval+1, 0.0);
+	REDUCE_INFLIGHT.assign(maxval+1, 0.0);
 }
 
-
-/*
-void  addAllPolicies( PolicyQueue &queue )  {
-	for (int jj = 0; jj < policyParams.size(); jj++)  {
-		for (int kk = 0; kk < policyParams[jj].size(); kk++)  {
-			switch (kk)  {
-				case  POLICY_TRACING_PROB:
-					queue.addPolicy( Policy(policyApplication[jj], &TRACING_PROB[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_SOCIALDIST_PROB:
-					queue.addPolicy( Policy(policyApplication[jj], &SOCIALDIST_PROB[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_TRAVELREDUCTION:
-					queue.addPolicy( Policy(policyApplication[jj], &TRAVELREDUCTION[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_TRAVELRED_ADMIN:
-					queue.addPolicy( Policy(policyApplication[jj], &TRAVELRED_ADMIN[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_STAYATHOME_AGE:
-					queue.addPolicy( Policy(policyApplication[jj], &STAYATHOME_AGE[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_STAYATHOME_OTH:
-					queue.addPolicy( Policy(policyApplication[jj], &STAYATHOME_OTH[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_STAYATHOME_SCH:
-					queue.addPolicy( Policy(policyApplication[jj], &STAYATHOME_SCH[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_FAMILY_TRANSMIT:
-					queue.addPolicy( Policy(policyApplication[jj], &FAMILY_TRANSMIT[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_STAYATHOME_FULL:
-					queue.addPolicy( Policy(policyApplication[jj], &STAYATHOME_FULL[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-				case  POLICY_SCHOOL_CLOSURE:
-					queue.addPolicy( Policy(policyApplication[jj], &SCHOOL_CLOSURE[policyApplication[jj]], &policyTime[jj], policyDuration[jj][kk], policyParams[jj][kk]) );
-					break;
-			}
-		}
-	}
-}
-*/
 
 
 void  accessCycle( int status )  {
@@ -741,6 +714,7 @@ void  accessCycle( int status )  {
 
 			updateContactMatrix();
 			initCountrySpecific();
+			params.somega = std::exp(params.omega) / simStatus.getTotalPopulationSize();
 			break;
 
 		case CYCLE_START:
@@ -856,7 +830,6 @@ bool  handleIsolation( Infos *data, int classId )  {
 
 void  shareContacts()  {
 	int  izero = 0;
-	std::set<int>  tmpContactEvents;
 
 	int sz = contactEvents.size();
 	DataBuffer  buf;
@@ -1460,13 +1433,13 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			fitting.setDistrs( 1 ); // Number of intermediate distributions after which we assume convergence
 			fitting.setParticlesPerTrial( 2 ); // REPLICAS?
 			fitting.setDiscardRatio( 0.10, 0.30 );
-			fitting.setThreshold( 85 );
+			fitting.setThreshold( 2.5 );
 			fitting.setKernelAmplitude( 1.0 );
 
 			for (auto &elem: paramTable)  {
 				switch (elem)  {
 					case  PARAM_T0:
-						fitting.addParameter( "t0",			0.0,	PARTYPE_UNIFORM,	{ 0., 60.} );
+						fitting.addParameter( "t0",			0.0,	PARTYPE_UNIFORM,	{ 0., 40.} );
 						break;
 
 					case  PARAM_R0:
@@ -1487,6 +1460,10 @@ void  doFitting( int status, PolicyQueue &queue )  {
 
 					case  PARAM_ZMAX:
 						fitting.addParameter( "zmax",		0.0,	PARTYPE_UNIFORM,	{ 0.2, 1.0} );
+						break;
+
+					case  PARAM_OMEGA:
+						fitting.addParameter( "omega",		0.0,	PARTYPE_UNIFORM,	{ std::log(0.01), std::log(100.) } );
 						break;
 				}
 			}
@@ -1644,6 +1621,10 @@ void  doFitting( int status, PolicyQueue &queue )  {
 					case  PARAM_ZMAX:
 						params.zmax = trialParticle.parameters[jj];
 						break;
+
+					case  PARAM_OMEGA:
+						params.omega = trialParticle.parameters[jj];
+						break;
 				}
 			}
 			params.t0   = std::floor( params.t0 );
@@ -1666,6 +1647,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 #else
 			getSymptomaticRate( static_cast<int>(params.tau), params.zmax );
 #endif
+			params.somega = std::exp(params.omega) / simStatus.getTotalPopulationSize();
 
 
 			chiSquared = 0.0;
@@ -1893,21 +1875,55 @@ void  evaluateR0( int tau_lvl )  {
 
 
 
+
+#ifdef  TAULEAP
+
+bool  infectother()  {
+	return true;
+}
+
 int  xinfectother(int nn)  {
 	return nn;
 }
 
 
+
+bool  infectnone()  {
+	return false;
+}
+
 int  xinfectnone(int nn)  {
-	return nn;
+	return 0;
+}
+
+
+
+bool  infectatwork()  {
+	return true;
 }
 
 int  xinfectatwork(int nn)  {
 	return nn;
 }
 
+
+
+
+bool  moveToInfect()  {
+	//totalCases++;
+	return true;
+}
+
 int  xmoveToInfect(int nn)  {
 	return nn;
+}
+
+
+
+
+bool  recoveryHidden()  {
+	cumulAsyCases++;
+	return true;
 }
 
 int  xrecoveryHidden(int nn)  {
@@ -1915,10 +1931,134 @@ int  xrecoveryHidden(int nn)  {
 	return nn;
 }
 
+
+
+// Return boolean because it is used directly in the SEIR model
+// besides being used indirectly in the full model
+bool  moveToCase()   {
+	totalCases++;
+	cumulCases++;
+	return true;
+}
+
 int  xmoveToCase(int nn)  {
 	totalCases += nn;
 	cumulCases += nn;
 	return nn;
 }
+
+
+
+
+bool moveToHos()  {
+	occupancy[OCC_HOS]++;
+	return true;
+}
+
+int  xmoveToHos(int nn)  {
+	occupancy[OCC_HOS] += nn;
+	return nn;
+}
+
+
+
+
+bool moveToIcu()  {
+	occupancy[OCC_ICU]++;
+	return true;
+}
+
+int  xmoveToIcu(int nn)  {
+	occupancy[OCC_ICU] += nn;
+	return nn;
+}
+
+
+
+
+bool moveToHom()  {
+	occupancy[OCC_HOM]++;
+	moveToCase();
+	return true;
+}
+
+int xmoveToHom(int nn)  {
+	occupancy[OCC_HOM] += nn;
+	xmoveToCase(nn);
+	return nn;
+}
+
+
+
+
+bool  recHos()  {
+	occupancy[OCC_HOS]--;
+	return true;
+}
+
+int  xrecHos(int nn)  {
+	occupancy[OCC_HOS] -= nn;
+	return nn;
+}
+
+
+
+
+bool  dedHos()  {
+	//int classId = simStatus.getCurrentIndividualClass();
+	//cumulDeaths[ ageNames[classId] ]++;
+	occupancy[OCC_HOS]--;
+	return true;
+}
+
+int  xdedHos(int nn)  {
+	occupancy[OCC_HOS] -= nn;
+	// Missing
+	return nn;
+}
+
+
+
+
+bool  recIcu()  {
+	occupancy[OCC_ICU]--;
+	return true;
+}
+
+int  xrecIcu(int nn)  {
+	occupancy[OCC_ICU] -= nn;
+	return nn;
+}
+
+
+
+
+bool  dedIcu()  {
+	//int classId = simStatus.getCurrentIndividualClass();
+	//cumulDeaths[ ageNames[classId] ]++;
+	occupancy[OCC_ICU]--;
+	return true;
+}
+
+int  xdedIcu(int nn)  {
+	//Missing
+	occupancy[OCC_ICU] -= nn;
+	return nn;
+}
+
+
+
+
+bool  recHom()  {
+	occupancy[OCC_HOM]--;
+	return true;
+}
+
+int  xrecHom(int nn)  {
+	occupancy[OCC_HOM] -= nn;
+	return nn;
+}
+
+#endif
 
 

@@ -10,16 +10,18 @@ simList['Default'] = {
 	'R0': 2.5,				# Value of the basic reproductive number
 	'sigma': 1/3.,			# Rate of transition from latent to infective classes
 	'gamma': 1/4.,			# Rate of removal
+	'omega': 1,				# Rade of imports per day
 	'tauleap': 'no',		# Tau leaping? NOT OPERATIVE, LEAVE TO 'no'
 	'households': 'yes', 	# WHETHER TO INCLUDE HOUSEHOLDS OR NOT
 	'betaMul': 1.0,			# CORRECTIVE TERM TO BETA
 	'familyAttackMul': 1.0,  # CORRECTIVE TERM TO BETA IN HOUSEHOLD
 	'nParticles': 140,  	# Number of particles for fitting procedure
-	'fitRestart': 1,			# Whether fitting should restart from scratch
+	'fitRestart': 1,		# Whether fitting should restart from scratch
 }
 
-simList['Kenya'] = {'mobility': 0.870, 'simLen': 365, 'R0': 2.5, 'model': 'consensus', 't0': 0, 'nParticles': 6, 'households': 'yes', 'betaMul': 1.172}
+simList['Kenya'] = {'mobility': 0.870, 'simLen': 365, 'R0': 2.5, 'model': 'consensus', 't0': 0, 'nParticles': 16, 'households': 'yes', 'betaMul': 1.172}
 simList['Italy'] = {'mobility': 0.395, 'simLen': 60, 'R0': 2.5, 'model': 'consensus', 't0':  21, 'nParticles': 16, 'households': 'yes', 'betaMul': 1.2368}
+#simList['Italy'] = {'mobility': 0.395, 'simLen': 60, 'R0': 2.5, 'model': 'consensus', 't0':  21, 'nParticles': 16, 'households': 'no', 'tauleap': 'yes', 'betaMul': 1.00}
 #simList['Italy'] = {'mobility': 0.395, 'simLen': 60, 'R0': 2.5, 'model': 'seir', 't0':  21, 'nParticles': 16, 'households': 'no', 'tauleap': 'no'}
 simList['Test'] = {'cores': 1, 'gridres': 5000, 'mobility': 0.870, 'simLen': 365, 'R0': 2.5, 'model': 'consensus', 't0':  0, 'nParticles': 16}
 

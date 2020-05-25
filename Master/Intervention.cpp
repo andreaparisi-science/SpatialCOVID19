@@ -14,6 +14,7 @@ extern std::vector<double>  STAYATHOME_SCH;
 extern std::vector<double>  FAMILY_TRANSMIT;
 extern std::vector<double>  STAYATHOME_FULL;
 extern std::vector<double>  SCHOOL_CLOSURE;
+extern std::vector<double>  REDUCE_INFLIGHT;
 
 
 Intervention::Intervention() {}
@@ -82,6 +83,9 @@ void  Intervention::activate()  {
 			break;
 		case  POLICY_SCHOOL_CLOSURE:
 			ptr.valptr = &SCHOOL_CLOSURE[extent];
+			break;
+		case  POLICY_REDUCE_INFLIGHT:
+			ptr.valptr = &REDUCE_INFLIGHT[extent];
 			break;
 		default:
 			throw  "Unknown Policy type";

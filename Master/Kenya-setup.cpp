@@ -1,11 +1,13 @@
-#include "../Data/Kenya/CSVReader.h"
-#include "../Data/Kenya/CSVReader.cpp"
+//#include "../Data/Kenya/CSVReader.h"
+//#include "../Data/Kenya/CSVReader.cpp"
 
 // Relevant files loaded at execution time
 static  std::string  contactMatrixFile = "../../../Data/Kenya/Contacts/KenyaContactMatrix";
 static  std::string  ageGroupEsriFile  = "../../../Data/Kenya/Setup/Kenya_%dkm_%d.dat";
 static  std::string  identifiersFile   = "../../../Data/Kenya/Maps/Kenya_%dkm_ids.asc";
-static  std::string  timeseriesFile    = "../../../Data/Kenya/Kenya_timeseries.dat";
+static  std::string  timeseriesFile    = "../../../Data/Kenya/Private/Kenya_timeseries.dat";
+
+static  std::string  importedCasesFile = "../../../Data/Kenya/Private/imported_byId_byAge.dat";
 
 enum  {EXTENT_NATIONAL = 1};
 std::vector<Intervention>	interventions = {
@@ -50,6 +52,7 @@ std::vector< std::vector<double> >  firstInfections = {
 
 
 std::vector< std::vector<int> >    idsMap;
+int   maxId = 0;
 void  loadIdentifiers( const std::string datafile )  {
 	char ch_filename[256];
 	std::string  filename;
@@ -60,6 +63,13 @@ void  loadIdentifiers( const std::string datafile )  {
 	idsMap.resize( data.ncols );
 	for (int jj = 0; jj < data.ncols; jj++)  idsMap[jj].resize( data.nrows, 0 );
 	reader.readFile( 1.0, idsMap );
+	for (int ii = 0; ii < data.ncols; ii++)  {
+		for (int jj = 0; jj < data.nrows; jj++)  {
+			if (maxId < idsMap[ii][jj])  {
+				maxId = idsMap[ii][jj];
+			}
+		}
+	}
 }
 
 
@@ -132,9 +142,52 @@ inline  int getMobilityDuration(double dist)  {
 
 
 
+
+std::vector< std::vector<double> >  importProbs;  
+void  loadImportProbs()  {
+	std::ifstream  instream( importedCasesFile );
+	int nAgeGroups = groups[ groups.size()-1 ] + 1;
+	int  ids, age;
+	double dummy, prob;
+
+	importProbs.resize( maxId+1 );
+	for (int jj = 1; jj <= maxId; jj++)  {
+		importProbs[jj].resize( nAgeGroups, 0.0 );
+	}
+	while (instream.good())  {
+		instream >> ids;
+		if (instream.eof())  break;
+		instream >> age;
+		instream >> dummy;
+		instream >> dummy;
+		instream >> prob;
+
+std::cout << "***** " << maxId << " " << ids << " "  << age << "\n" << std::flush;
+		importProbs[ids][age] = prob;
+//		instream.peek();
+	}
+}
+
+
+bool  importedCase()  {
+	RandomGenerator *RNG = simStatus.getRandomGenerator();
+	int classId = simStatus.getCurrentIndividualClass();
+	int age = ageNames[ classId ];
+	int xx  = simStatus.getX() % simStatus.getMaxX();
+	int yy  = simStatus.getY();
+	int ids = idsMap[xx][yy];
+	if (ids == 0)  simStatus.abort("IDS is ZERO");
+	if (RNG->get() < importProbs[ids][age])  {
+		return true;
+	}
+	return false;
+}
+
+
 /*
 void  loadFirstInfections()  {
 	std::ifstream  instream("county-level-data-byId.dat");
+	int id;
 	CSVReader csv( ',', '"' );
 	csv.removeQuotes( true );
 	csv.trimSpaces( true );
@@ -146,15 +199,16 @@ void  loadFirstInfections()  {
 	int maxCountyId = 0;
 	for (int ii = 0; ii < simStatus.getMaxX(); ii++)  {
 		for (int jj = 0; jj < simStatus.getMaxY(); jj++)  {
-			if (popMap[xx][yy] > 0)  {
+			if (popMap[ii][jj] > 0)  {
 				id = idsMap[ii][jj];
 				if (maxCountyId < id)  {
 					maxCountyId = id;
 					countyPopDistr.resize( maxCountyId+1 );
 					if (countyPopDistr[id].size() == 0)  {
-						countyPopDistr[id].push_back( popMap[xx][yy] );
+						countyPopDistr[id].push_back( popMap[ii][jj] );
 					} else {
-						countyPopDistr[id].push_back( popMap[xx][yy] + countyPopDistr[id].back() );
+						countyPopDistr[id].push_back( popMap[ii][jj] + countyPopDistr[id].back() );
+					}
 				}
 			}
 		}
@@ -166,10 +220,10 @@ void  loadFirstInfections()  {
 		int target, agegroup, importedSymp, countyId;
 		instream.getline( line, 65536 );
 		vec = csv.getline( line );
-		time = atof(vec[1]);
-		agegroup = atol(vec[2]);
-		importedSymp = vec[3];
-		countyId = vec[12];
+		time = atof(vec[1].c_str());
+		agegroup = atol(vec[2].c_str());
+		importedSymp = atol(vec[3].c_str());
+		countyId = atol(vec[12].c_str());
 		instream.peek();
 
 		target = static_cast<int>( RNG->get()*countyPopDistr[countyId].back() );
@@ -178,7 +232,7 @@ void  loadFirstInfections()  {
 		int count = 0;
 		for (int ii = 0; ii < simStatus.getMaxX(); ii++)  {
 			for (int jj = 0; jj < simStatus.getMaxY(); jj++)  {
-				if (popMap[xx][yy] > 0)  {
+				if (popMap[ii][jj] > 0)  {
 					id = idsMap[ii][jj];
 					if (id == countyId)  {
 						if (count == target)  {
@@ -199,6 +253,7 @@ void  loadFirstInfections()  {
 
 void  initCountrySpecific()  {
 	loadIdentifiers( identifiersFile );
+	loadImportProbs();
 	//loadFirstInfections();
 }
 
@@ -221,7 +276,7 @@ bool  checkLockdown(int x0, int y0)  {
 // FITTING  PROTOTYPE FOR GENERALIZATION
 //enum {PARAM_T0 = 0x01, PARAM_R0 = 0x02, PARAM_GAMMA = 0x04, PARAM_TRACING = 0x08};
 //enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
-std::vector< int >  inputTable = {DATA_DUMMY, DATA_CASES, DATA_DEATHS};
-std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_GAMMA};
+std::vector< int >  inputTable = {DATA_DUMMY, DATA_CASES};
+std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_GAMMA, PARAM_OMEGA};
 std::vector< int >  distsTable = {DATA_CASES};
 

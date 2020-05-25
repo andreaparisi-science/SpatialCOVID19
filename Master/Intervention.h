@@ -16,6 +16,7 @@ enum  {	POLICY_TRACING_PROB = 0,		// Contact tracing probability
 		POLICY_FAMILY_TRANSMIT, 		// Increase in family transmission
 		POLICY_STAYATHOME_FULL, 		// Whether stay-at-home for younger and older means avoiding all social contacts (ex. no shopping at all)
 		POLICY_SCHOOL_CLOSURE, 			// Fraction of schools closed (generalized)
+		POLICY_REDUCE_INFLIGHT,			// Stops external imports
 		POLICY_TYPE_LAST
 };
 
