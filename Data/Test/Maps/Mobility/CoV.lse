@@ -1,5 +1,5 @@
 GENERAL:
-	Partfile	"../../Setup/Kenya_5km-012.ppm"
+	Partfile	"../../Setup/Test_20km-012.ppm"
 	Locations	50
 	Readinit	Write
 	Storefile	"storage"
@@ -10,7 +10,7 @@ GENERAL:
 	AccessCycle	1
 
 POPULATIONS:
-	Default "../../Setup/Kenya_5km.asc"	None	RadiationNorm	0.05
+	Default "../../Setup/Test_20km.asc"	None	RadiationNorm	0.05
 
 CLASSES:
 	Sus	1

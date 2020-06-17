@@ -1,6 +1,13 @@
 library(dplyr)
 
 args = commandArgs(trailingOnly=TRUE)
+if (length(args) < 1)  {
+	print( "Rscript Rmultiple  STARTDATE [LIMIT]")
+	print( "    - STARTDATE: offset of days for day zero. (Use 0 if uncertain).")
+	print( "    - LIMIT: maximum Run number to include")
+	quit('no')
+}
+
 startDate = as.numeric(args[1])
 
 directory <- (list.files(".", pattern="Run-\\d{3}"))
@@ -16,7 +23,7 @@ cumul <- data.frame()
 for (jj in 1:length(directory))  {
 	if (jj > limit)  break
 	locdata <- read.table(paste(directory[jj],"DeryaSE-summary-Daily.dat", sep="/"), header=FALSE)
-	header <- c("Day", "Hosp.cases", "ICU.cases", "Home.cases", "Asympt.cases", "Recovs", "Deaths", "Cases.cumul", "Asympt.cumul", "Hosp.occupancy", "ICU.occupancy", "Home.occupancy", "Ctrl1", "Ctrl2", "Deaths.cumul.0", "Deaths.cumul.5", "Deaths.cumul.10", "Deaths.cumul.15", "Deaths.cumul.20", "Deaths.cumul.25", "Deaths.cumul.30", "Deaths.cumul.35", "Deaths.cumu.40", "Deaths.cumul.45", "Deaths.cumul.50", "Deaths.cumul.55", "Deaths.cumul.60", "Deaths.cumul.65", "Deaths.cumul.70", "Deaths.cumul.75", "Deaths.cumul.80", "Deaths.cumul")
+	header <- c("Day", "Hosp.cases", "ICU.cases", "Home.cases", "Asympt.cases", "Recovs", "Deaths", "Cases.cumul", "Asympt.cumul", "Hosp.occupancy", "ICU.occupancy", "Home.occupancy", "Ctrl1", "Ctrl2", "Ctrl3", "Deaths.cumul.0", "Deaths.cumul.5", "Deaths.cumul.10", "Deaths.cumul.15", "Deaths.cumul.20", "Deaths.cumul.25", "Deaths.cumul.30", "Deaths.cumul.35", "Deaths.cumu.40", "Deaths.cumul.45", "Deaths.cumul.50", "Deaths.cumul.55", "Deaths.cumul.60", "Deaths.cumul.65", "Deaths.cumul.70", "Deaths.cumul.75", "Deaths.cumul.80", "Deaths.cumul")
 	colnames(locdata) <- header
 	if (tail(locdata,1)$Asympt.cumul < 1000)  {
 		print( paste("Early extinction for [", directory[jj], "]", sep='') )
@@ -27,13 +34,15 @@ for (jj in 1:length(directory))  {
 	locdata <- locdata[-1,]
 	locdata <- locdata[locdata$Day > startDate,]
 	locdata$Day <- locdata$Day-(startDate)
+	index <- match( c("Deaths.cumul.0"), header )
 	if (kk == 1)  {
 		fulldata <- locdata
-		cumul <- data.frame( tail(locdata, 1)[15:31] )
+		cumul <- data.frame( tail(locdata, 1)[index:(index+16)] )
 	} else  {
 		fulldata <- rbind(fulldata, locdata)
-		cumul <- rbind(cumul, data.frame(tail(locdata, 1)[15:31]) )
+		cumul <- rbind(cumul, data.frame(tail(locdata, 1)[index:(index+16)]) )
 	}
+
 	locdata$Week = floor((locdata$Day-1)/7)+1
 	glocdata <- group_by(locdata, Week)
 	locdata <- summarise(glocdata, Hosp.occupancy=max(Hosp.occupancy), ICU.occupancy=max(ICU.occupancy))

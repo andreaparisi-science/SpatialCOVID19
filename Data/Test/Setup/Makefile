@@ -1,15 +1,17 @@
-CORES:=1
-GRIDRES:=5000
+CORES:=12
+GRIDRES:=20
 COUNTRY:=Test
-OUTDIR:=OutTest
-PROCS:=001
+PROCS:=012
  
 map:
-	deryaSE --define GRIDRES=${GRIDRES} CoV.lse
+	\rm -f lse-userdefined.*
+	\ln -s ../../../Master/Setup/lse-userdefined.cpp .
+	\ln -s ../../../Master/Setup/lse-userdefined.h .
+	deryaSE --define GRIDRES=${GRIDRES} --define COUNTRY=\"${COUNTRY}\" --define SHORTCOUNTRY=\"ken\" --define YEAR=\"2018\" --define REDUCE_FACTOR=0.1 CoV.lse
 	./runderyaSE 1
 
 part:
-	deryaSE --partitionmap --filein ${COUNTRY}_${GRIDRES}km.asc --patches ${PROCS} --connect --seed 3
+	deryaSE --partitionmap --filein ${COUNTRY}_${GRIDRES}km.asc --patches ${PROCS} --connect --seed 5
 	mv wmap-final.ppm ${COUNTRY}_${GRIDRES}km-${PROCS}.ppm
 	\rm wmap-*
 
@@ -17,6 +19,6 @@ clean:
 	\rm -f deryaSE.log
 	\rm -f DeryaSE-summary*
 	\rm -f DeryaSE-map*
-	\rm -f Italy_*km*
+	\rm -f Test_*km*
 	\rm -f runderyaSE
 

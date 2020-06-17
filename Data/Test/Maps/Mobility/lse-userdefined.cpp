@@ -569,7 +569,7 @@ void  accessCycle( int status )  {
 	switch (status)  {
 		case CYCLE_INIT:
 			analyzeTripDistribution();
-			loadAscFile( std::string("../Kenya_") + std::to_string(GRIDRES) + "km_maonly.asc", popMap);
+			loadAscFile( std::string("../Test_") + std::to_string(GRIDRES) + "km_maonly.asc", popMap);
 			loadStoreFile("storage", popMap);
 			groups = buildGroups(strgroups);
 

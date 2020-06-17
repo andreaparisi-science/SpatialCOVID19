@@ -1,0 +1,554 @@
+---
+title: "Determination of detection rates, hospitalizations, ICU admissions, death rates of severe and critical cases from Spanish data sets. Comparison with other countries."
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+    css: style.css
+---
+
+The Spanish Government has published detailed age stratified data on hospital and critical care admissions.  I looked into the data to get sensible estimates of hospitalization.  It happens that the Spanish serological survey also came out, age stratified and quite detailed.  Using these, and additional information from a published article of ICU admissions in Italy, one can derived all relevant rates/probabilities and, through comparison with other countries, say something on the reliability of the data.
+
+
+## Spanish population pyramid
+
+Get age pyramid for Spain (5 years age groups) these estimates are produced via processed WorldPop data (2020 estimates)
+```{r}
+age.pyram.17 <- as.matrix( read.table("Data/Spain_5km_stats.dat", 
+									  header=FALSE) )
+age.pyram.17 <- unlist(age.pyram.17[,3])
+```
+
+Build reduced age pyramid (10 years age groups) by aggregating
+```{r}
+get.10y.from.5y <- function( ap.17 )  {
+	ap.9 = c()
+	for (jj in seq(1,16,2))  ap.9 <- cbind(ap.9, ap.17[jj]+ap.17[jj+1])
+	ap.9 <- cbind(ap.9, ap.17[17])
+}
+
+get.5y.from.10y <- function( ap.9, bp.17 )  {
+	ap.17 = c()
+	for (ii in 1:8)  {
+		ratio <- bp.17[(2*ii-1):(2*ii)]
+		ratio <- ratio[1]/(ratio[1]+ratio[2])
+		ap.17 <- c(ap.17, ap.9[ii]*ratio, ap.9[ii] - ap.9[ii]*ratio)
+	}
+	ap.17 = c(ap.17, ap.9[9] )
+}
+
+age.pyram.9 <- get.10y.from.5y( age.pyram.17 )
+```
+
+
+## Spanish survey data
+
+Take data from Spahish survey: number of tested and percentage of positive
+```{r}
+# Data from spanish survey
+spanish.survey.count.20 <- c(268, 1693, 2857, 3425, 3221, 2805, 2606, 3050, 4000, 
+							 5174, 5330, 5263, 5187, 4560, 3568, 2931, 2161, 1410, 
+							 968, 420)
+spanish.survey.perc.20  <- c(1.1, 2.2, 3.0, 3.9, 3.8, 4.5, 4.8, 3.8, 4.6, 
+							5.3, 5.7, 5.8, 6.1, 5.9, 6.2, 6.9, 6.1, 5.1, 5.6, 5.8)
+```
+
+Estimate the number of positives in survey
+
+```{r}
+spanish.survey.posit.20 <- spanish.survey.count.20 * spanish.survey.perc.20 / 100.0
+```
+
+Reduce survey data to 17 age groups
+```{r}
+spanish.survey.count.17 <- spanish.survey.count.20[2:18]
+spanish.survey.count.17[1] <- spanish.survey.count.17[1] + spanish.survey.count.20[1]
+spanish.survey.count.17[17] <- spanish.survey.count.17[17] + spanish.survey.count.20[19] +
+	spanish.survey.count.20[20]
+
+spanish.survey.posit.17 <- spanish.survey.posit.20[2:18]
+spanish.survey.posit.17[1] <- spanish.survey.posit.17[1] + spanish.survey.posit.20[1]
+spanish.survey.posit.17[17] <- spanish.survey.posit.17[17] + spanish.survey.posit.20[19] +
+	spanish.survey.posit.20[20]
+```
+
+Estimate positive counts on national basis using the 17 age groups
+```{r}
+spanish.survey.perc.17 <- spanish.survey.posit.17 / spanish.survey.count.17
+spanish.estimate.count.17 <- spanish.survey.perc.17 * age.pyram.17
+print(paste('Check: 5% ~', sum(spanish.estimate.count.17)/(sum(age.pyram.17))*100.0) )
+```
+
+## Admission to ICU and overall (severe + critical) death rates
+
+Information from Spain at 16.05.2020 - 10 years age groups.  This is age stratified information on 239,125 cases, and includes hospital admissions, ICU admissions (from hospitalized), and deaths (both ICU and hospital, for a total of 19,186 deaths). The age stratified information is a subset of the total cases (about 70%) for which information on sex and age is available.
+
+```{r}
+cases.total.9 <- c(877, 1637, 13461, 22639, 35135, 42794, 34360, 32443, 37463+18316)
+cases.hosp.9 <- c(279, 277, 1477, 3811, 8666, 14075, 17264, 20794, 18842+6346)
+cases.ICUs.9 <- c(39, 23, 89, 274, 740, 1562, 2534, 2261, 332+56)
+cases.deaths.9 <- c(2, 5, 23, 63, 201, 611, 1695, 4632, 7872+4082)
+```
+
+The same report provides further information on all cases, setting the total death toll to 27,650.  Using this information, we rescale the deaths to account for the true death toll.  This is supported by the fact that the rate of hospitalization and ICU admission for the wider set is similar to that for the age stratified set.
+
+```{r}
+total.deaths <- 27650
+cases.deaths.9 <- cases.deaths.9*total.deaths/(sum(cases.deaths.9))
+```
+
+Distribute total cases to 5-years age classes distributing by age prevalence
+```{r}
+cases.total.17 <- get.5y.from.10y( cases.total.9, spanish.estimate.count.17 )
+cases.deaths.17 <- get.5y.from.10y( cases.deaths.9, spanish.estimate.count.17 )
+print( paste("Check: ", sum(cases.total.9),'=',sum(cases.total.17)) )
+print( paste("Check: ", sum(cases.deaths.9),'=',sum(cases.deaths.17)) )
+```
+
+
+Determine detection (sympt) rate. This is the rate of detection of cases, not truly asymptomatic rates. This is given by the count of detected cases divided by the count of totally infected plus the dead individuals (which are there but would not appear in the count of individuals affected by COVID19). We get the rates for 5y and 10y age groups.
+```{r}
+sympt.rate.17 <- cases.total.17 / (spanish.estimate.count.17+cases.deaths.17)
+print(sympt.rate.17)
+sympt.rate.9 <- cases.total.9 / get.10y.from.5y(spanish.estimate.count.17+cases.deaths.17)
+print(sympt.rate.9)
+```
+
+Derive estimated critical admissions (raw estimate) from Spanish cases
+```{r}
+hosp_to_ICUs.9 <- cases.ICUs.9/cases.hosp.9
+```
+
+
+## ICU death rates using Italian data
+
+Estimates of ICU deaths are based on a study published recently on about 1600 patients admitted to ICU in Lombardy, Italy [Grasselli, G., et al. (2020). Baseline Characteristics and Outcomes of 1591 Patients Infected With SARS-CoV-2 Admitted to ICUs of the Lombardy Region, Italy. JAMA 323, 1574–1581].  The patients in the study were admitted between the 20th of February and the 18th of March (28 days), and the study reports on their status on the 25th of March (35 days).
+
+Copy of Italian data: (n) -> number of cases, (d) -> number of deaths, (s) -> number of active cases
+
+```{r}
+# Derive estimated critical death rate from Italian data
+ita.ICUn.9 <- c(2, 2, 56, 56, 142, 423, 596, 340, 22)
+ita.ICUd.9 <- c(0, 0,  4,  4,  16,  63, 174, 136, 12)
+ita.ICUs.9 <- c(2, 2, 32, 32,  91, 270, 353, 164,  8)
+```
+
+Estimate must take into account that a fraction of those still in hospital will die.
+Assume the usual $dI/dt$ for an equivalent SIR model, with $R_0(t)$ linearly decreasing between $R_0=3$ and 1 [Riccardo, F., et al. (2020). Epidemiological characteristics of COVID-19 cases in Italy and estimates of the reproductive numbers one month into the epidemic. MedRxiv 2020.04.08.20056861.].
+This implies $I(t) \propto \exp(\int_0^t \left(R_0(\tau)-1\right)\gamma\ d\tau)$.
+
+$$
+\begin{array}{c}
+\displaystyle R_0(t)=R_0 + (1-R_0)t/T\quad\textrm{where }R_0=3\textrm{, and }T=28\textrm{ days}\\
+\displaystyle \frac{dI}{I}=(R_0(t)-1) \gamma\ dt = (R_0-1)\left(1-t/T\right)\gamma\ dt\\
+\displaystyle \Rightarrow\\
+\displaystyle I(t) \propto \exp\left( (R_0-1)t\left(1-t/2T\right)\gamma \right)
+\end{array}
+$$
+
+First build a function that returns $I(t)/I(0)$, then a function that returns the entry time of n severe admissions to ICU. Use simple rejection method to draw from the normalized I(t). Use $\gamma=1/7$: this is the approximated equivalent SIR model.
+
+```{r}
+epigrowth <- function(t, R0, gamma)  {
+#	alpha = (R0-1)*gamma
+#	return(exp(alpha*t)/alpha)
+	return( exp( (R0-1)*t*(1-t/(2*28))*gamma ) )
+}
+
+# Returns numbers distributed according to I(t)/I(0). These are hospitalization times
+repigrowth <- function( n, R0, gamma )  {
+	maxobj <- optimize(function(x) {return(epigrowth(x, R0, gamma))}, 
+					   interval=c(0, 28), maximum=TRUE)
+	x.max <- maxobj$maximum
+	y.max <- maxobj$objective
+	y.min <- 1
+	theta = y.max - y.min
+	vec <- c()
+	for (jj in 1:n)  {
+		repeat {
+			x = runif(1)*28
+			y = runif(1) < epigrowth(x, R0, gamma)/theta
+			if (y)  {
+				break
+			}
+		}
+		vec <- c(vec, x)
+	}
+	return(vec)
+}
+```
+
+Search for death rate that produces the expected deaths by the 25th of May. The final number of deaths in ICU will be higher than the number of deaths registered up to the 25th.
+```{r}
+findRate <- function(rate, age)  {
+	vals <- c()
+	nn = floor(ita.ICUn.9[age]*rate)
+	if (nn > 0)  {
+		for (jj in 1:1000)  {
+			t.to.death.ITA <- rpois(nn, 7)
+			t.hospital.ITA <- repigrowth(nn, R0=3.0, gamma=1.0/7.0)
+			# From 20-02-2020 to 18-03-2020 (included)
+			vals <- cbind( vals, sum(t.to.death.ITA+t.hospital.ITA <= 35) )
+		}
+	} else {
+		vals = 0
+	}
+	return( mean(vals)-ita.ICUd.9[age] )
+}
+
+pg1 <- txtProgressBar(min=1, max=length(ita.ICUn.9), style=3)
+critic_to_death.9 <- c()
+for (age in 1:length(ita.ICUn.9))  {
+	setTxtProgressBar(pg1, age)
+	rate <- uniroot(findRate, c(0,1), age)$root
+	critic_to_death.9 <- cbind(critic_to_death.9, rate)
+}
+print( critic_to_death.9 )
+print( paste('Check:',sum(critic_to_death.9*ita.ICUn.9),'>',sum(ita.ICUd.9) ) )
+```
+
+
+## Finalizing data
+
+Estimate deaths in ICUs and hospital in Spain using Italian rates. Estimate death rates for severe cases
+```{r}
+ICUs.deaths.9 <- (cases.ICUs.9 * critic_to_death.9)
+hosp.deaths.9 <- cases.deaths.9 - ICUs.deaths.9
+# Death rates from non-ICU cases
+hosp_to_death.9 <- hosp.deaths.9 / (cases.hosp.9-cases.ICUs.9)
+```
+
+Hospitalization rates are the crude rates, given cases.total is the number of detected cases.
+```{r}
+symp_to_hosp.9 <- (cases.hosp.9-cases.ICUs.9)/cases.total.9
+symp_to_ICUs.9 <- cases.ICUs.9/cases.total.9
+print("Sympt to hosp")
+print(symp_to_hosp.9)
+print(symp_to_ICUs.9)
+print(cases.hosp.9/cases.total.9*hosp_to_ICUs.9)
+print("The last two should be the same")
+```
+
+Output all rates, assuming 17 age groups (simulation ready... more or less: see at the end)
+```{r}
+symp_to_hosp.17 <- c(rbind(symp_to_hosp.9, symp_to_hosp.9))[1:17]
+symp_to_ICUs.17 <- c(rbind(symp_to_ICUs.9, symp_to_ICUs.9))[1:17]
+hosp_to_ICUs.17 <- c(rbind(hosp_to_ICUs.9, hosp_to_ICUs.9))[1:17]
+hosp_to_death.17 <- c(rbind(hosp_to_death.9, hosp_to_death.9))[1:17]
+symp_to_death.9 <- symp_to_hosp.9*hosp_to_death.9 + symp_to_ICUs.9*critic_to_death.9
+critic_to_death.17 <- c(rbind(critic_to_death.9, critic_to_death.9))[1:17]
+dat <- data.frame( age=seq(0,8*10, by=10), srate=c(sympt.rate.9), 
+				   s2h=symp_to_hosp.9, s2c=symp_to_ICUs.9, 
+				   h2d=c(hosp_to_death.9), c2d=c(critic_to_death.9) )
+#write.csv(dat, file="../../Data/Other/rates.csv", row.names=FALSE)
+tail( dat, n=18 )
+```
+
+The interesting aspect of these rates is that they are not strictly dependent on the knowledge of the detection rate.  In other words, sympt.rate.17*symp_to_hosp.17 is the rate an average infected individual will be hospitalized (severe case), independently on being symptomatic or asymptomatic. That means that as long as we have a detection rate, or better a symptomatic rate that is compatible with (meaning greather than) the hospitalization rate, we can rescale one of the terms of the multiplication according to what the other term becomes.  What is invariant is the product.  By splitting the product into detection rate and hospitalization rate, we retain the information on the detection rate: this could be used for comparison between countries.
+
+
+## Comparisons and checks
+
+We can compare the resulting rates with with the Infectious Fatality Ratio (IFR) from the Verity paper [Verity, R., et al. (2020). Estimates of the severity of coronavirus disease 2019: a model-based analysis. The Lancet Infectious Diseases.], and with other countries.  This will provide an insight into the reliability of the estimates obtained above.
+
+### Comparing with Verity IFR
+
+How do expected deaths for Spain based on above numbers compare with those predicted with Verity IFR?
+```{r}
+expected.deaths.9 <- age.pyram.9*sympt.rate.9*(symp_to_hosp.9*hosp_to_death.9+
+												  	symp_to_ICUs.9*critic_to_death.9)
+print(sum(expected.deaths.17))
+IFR <- c(0.00161, 0.00695, 0.0309, 0.0844, 0.161, 0.595, 1.93, 4.28, 7.80)/100.0
+print(sum(age.pyram.9*IFR))
+```
+
+Here we are using a rough estimate of the number of deaths if 100% of the population were affected. The Verity IFR predicts a higher death toll, about 1.5 times higher  It is worth exploring where the difference comes from
+```{r}
+#expected.deaths.9 <- get.10y.from.5y( expected.deaths.17 )
+print((age.pyram.9*IFR-expected.deaths.9)/expected.deaths.9)
+print(sum(age.pyram.9*IFR))
+print(sum(expected.deaths.9))
+```
+
+The general consensus is that death in Spain (as in many European countries) are underestimated as they typically miss many elderly dying home or in care homes with typical COVID19 symptoms. However, here the bulk of the difference does not come from the oldest age groups, but from middle aged groups.  This poses a doubt, which requires comparison with other countries.
+
+We can have a look at two other data sets from European countries: from Italy and Germany.. At the 20th of May there were 31017 deaths in Italy, all age attributed.  Germany has similarly recorded age for all deaths and is in fully updated at 23rd of March (Note: German data are reported in German from Robert Kock Institute; their age stratified data is reported in form of a plot. I sidelined retrieving data from the plot by accessing Wikipedia data which looks appropriate.)
+We can take the age pyramid of the two countries and rescale appropriately to check how Italian and German deaths would have appeared in Spain by accounting for demographic differences.
+
+```{r}
+buildDataset <- function( deaths.9, pyram.17, def.pyram.9)  {
+	pyram.9 <- get.10y.from.5y(pyram.17)
+	deaths.rescaled.9 <- (deaths.9/pyram.9)*def.pyram.9
+	deaths.rescaled.9 <- deaths.rescaled.9*27650/sum(deaths.rescaled.9)
+	return (deaths.rescaled.9)
+}
+# Rescaling for Spanish data (no rescale needed here!)
+cases.deaths.rescaled.9 <- cases.deaths.9
+
+# Loading and rescaling of Italian data
+ITA <- c(4, 0, 14, 61, 268, 1101, 3219, 8447, 12691+5212)
+ita.age.pyram.17 <- as.matrix( read.table("Data/Italy_5km_stats.dat", 
+										  header=FALSE) )[,3]
+ita.deaths.rescaled.9 <- buildDataset( ITA, ita.age.pyram.17, age.pyram.9 )
+
+# Loading and rescaling of German data
+GER <- c(1, 2, 8, 20, 62, 279, 761, 1844, 3689+1496+50)
+ger.age.pyram.17 <- as.matrix( read.table("Data/Germany_5km_stats.dat", 
+										  header=FALSE))[,3]
+ger.deaths.rescaled.9 <- buildDataset( GER, ger.age.pyram.17, age.pyram.9 )
+
+# Datasets and Plots
+ver.projections.9 <- 
+	as.vector((age.pyram.9*IFR)*sum(cases.deaths.rescaled.9)/sum(age.pyram.9*IFR))
+df1 <- data.frame( age=seq(0,8*10,10), ita=as.vector(ita.deaths.rescaled.9),
+				   ger=as.vector(ger.deaths.rescaled.9), 
+				   esp=cases.deaths.rescaled.9,
+				   ver=ver.projections.9)
+tail(df1, n=10)
+print(colSums(df1))
+max.y = max(df1)
+plot(c(0,80), c(0,max.y), type="n", xlab="Age", ylab="Number of deaths", 
+	 main="Projected deaths according to Spanish age pyramid")
+lines(df1$age, df1$esp, col="red", type='l')
+lines(df1$age, df1$ita, col="blue")
+lines(df1$age, df1$ger, col="orange")
+lines(df1$age, df1$ver, col="darkgreen", lw=2, lt=2)
+legend(0, 16000, c("Spain", "Italy", "Germany", "Verity pred."), 
+	   col=c("red","blue","orange","darkgreen"), lty=c(1,1,1,2), lw=c(1,1,1,2))
+```
+
+It is evident that after rescaling, the Spanish, German and Italian sets have more similarity than the predictions from the Verity IFR. It also appears interesting that German and Spanish data sets are almost superimposing, suggesting that the Spanish dataset is sufficiently robust. This also reassures on the fact that initially we proportionally redistributed, over all the age groups, the difference between the 27650 cases and the 19186 cases that had age information.  However, it would be important to compare with additional countries.  We add here a similar comparison with the additional sets from Portugal, Switzerland and Canada.
+
+
+```{r}
+POR <- c(0, 0, 1, 0, 15, 41, 118, 258, 384+513)
+por.age.pyram.17 <- as.matrix( read.table("Data/Portugal_5km_stats.dat", 
+										  header=FALSE) )[,3]
+por.deaths.rescaled.9 <- buildDataset( POR, por.age.pyram.17, age.pyram.9 )
+
+CHZ <- c(0, 0, 0, 5, 4, 34, 114, 320, 1084)
+chz.age.pyram.17 <- as.matrix( read.table("Data/Switzerland_5km_stats.dat", 
+										  header=FALSE) )[,3]
+chz.deaths.rescaled.9 <- buildDataset( CHZ, chz.age.pyram.17, age.pyram.9 )
+
+# Loading and rescaling of Italian data
+CAN <- c(0, 0, 3, 10, 36, 116, 382, 949, 3982+2153+1828)
+can.age.pyram.17 <- c(1929522, 1993849, 1905977, 2067651, 2495075, 2575863,
+					  2579123, 2501565, 2379067, 2363496, 2664738, 
+					  2725718, 2363696, 2019832, 1538354, 1056484, 817778)
+can.deaths.rescaled.9 <- buildDataset( CAN, can.age.pyram.17, age.pyram.9 )
+
+df2 <- data.frame( age=seq(0,8*10,10), por=as.vector(por.deaths.rescaled.9),
+				   chz=as.vector(chz.deaths.rescaled.9), 
+				   can=as.vector(can.deaths.rescaled.9))
+
+df0 <- merge(df1, df2, by.x='age', by.y='age')
+```
+
+Plots follow
+```{r}
+max.y=max(df0)
+plot(c(0,80), c(0, max.y), type='n', xlab="Age", ylab="Number of deaths", 
+	 main = "Projected deaths according to Spanish age pyramid")
+lines(df0$age, df0$esp, type='l', col="red")
+lines(df0$age, df0$ita, col="blue")
+lines(df0$age, df0$ger, col="orange")
+lines(df0$age, df0$por, col="violet")
+lines(df0$age, df0$chz, col="pink")
+lines(df0$age, df0$can, col="black")
+lines(df0$age, df0$ver, col="darkgreen", lw=2, lty=2)
+legend(0,25000, c("Spain", "Italy", "Germany", "Portugal", "Switzerland", 
+				  "Canada", "Verity pred."), col=c("red", "blue",
+				  "orange", "violet", "pink", "black", "darkgreen"), 
+	   lty=c(1,1,1,1,1,1,2), lw=c(1,1,1,1,1,1,2))
+```
+
+With respect to the other countries, Canada is remarkably different.  However, cases are here renormalized so that we are taking age stratified cases in one country and compare with the Spanish case by accounting for demography and matching the total count number. 
+
+According to Wikipedia, the majority of deaths in earderly in Canada occurred in long-term care home with "factors such as outside visitors, communal living spaces, and staff being transferred among multiple facilities, as particular vulnerabilities.". Estimates suggest that "as many of 79 percent of Canada's COVID-19 fatalities occurred in long-term care homes".  So it is a problem common to many countries that was particularly exacerbated in Canada.  Hence, do the curves resamble each other if we exclude the 80+ category?  We can normalize up to the 70s and observe how close the curves are:
+
+```{r}
+makePlot <- function(nn)  {
+	colours=c("red","blue", "orange","violet", "pink", "black", "darkgreen")
+	max.y = 8000
+	plot(c(0,(nn-1)*10), c(0,max.y), type="n", xlab="Age", ylab="Number of deaths", 
+		 main = "Projected deaths renormalized to match the total of cases up to 70 y.o.")
+	lines(df0$age[1:nn], df0$esp[1:nn]/sum(df0$esp[1:nn])*sum(df0$esp[1:nn]), type='l', col=colours[1])
+	lines(df0$age[1:nn], df0$ita[1:nn]/sum(df0$ita[1:nn])*sum(df0$esp[1:nn]), type='l', col=colours[2])
+	lines(df0$age[1:nn], df0$ger[1:nn]/sum(df0$ger[1:nn])*sum(df0$esp[1:nn]), type='l', col=colours[3])
+	lines(df0$age[1:nn], df0$por[1:nn]/sum(df0$por[1:nn])*sum(df0$esp[1:nn]), type='l', col=colours[4])
+	lines(df0$age[1:nn], df0$chz[1:nn]/sum(df0$chz[1:nn])*sum(df0$esp[1:nn]), type='l', col=colours[5])
+	lines(df0$age[1:nn], df0$can[1:nn]/sum(df0$can[1:nn])*sum(df0$esp[1:nn]), type='l', col=colours[6])
+	lines(df0$age[1:nn], df0$ver[1:nn]/sum(df0$ver[1:nn])*sum(df0$esp[1:nn]), type='l', col=colours[7], 
+		  lw=2, lty=2)
+	legend(0, 8000, c("Spain","Italy", "Germany", "Portugal", "Switzerland", 
+					  "Canada", "Verity pred."), col=colours, 
+		   lty=c(1,1,1,1,1,1,2), lw=c(1,1,1,1,1,1,2))
+}
+
+makePlot(8)
+```
+
+The plot still shows some variability in death incidence, but such variability is less dramatic and probably determined by stochastic effects and difference in age mixing.  The Verity predictions are still somehow off.  With this, we can thus assume that the the assumptions made about Spanish data are fine and we can save the rate to an external file.
+
+```{r}
+#dat$s2h <- dat$s2h * 27650/19186.0 # <- C++ prgrammer idiosyncracy
+#dat$s2c <- dat$s2c * 27650/19186.0
+#dat$srate <- dat$srate * 27650.0/19186
+
+print( paste('Check: 27650 =',sum(cases.total.9 * (dat$s2h*dat$h2d + dat$s2c*dat$c2d)) ) )
+write.csv(dat, file="Output/rates.csv", row.names=FALSE)
+tail( dat, n=18 )
+sum(cases.deaths.9/(dat$srate*(dat$s2h*dat$h2d+dat$s2c*dat$c2d)))/sum(age.pyram.9)
+sum((spanish.estimate.count.9+cases.deaths.9)*dat$srate)
+sum((spanish.estimate.count.9+cases.deaths.9)*dat$srate*(dat$s2h*dat$h2d+dat$s2c*dat$c2d))
+sum(cases.deaths.9/(dat$srate*(dat$s2h*dat$h2d+dat$s2c*dat$c2d))-cases.deaths.9)
+sum(spanish.estimate.count.9)
+```
+
+We can assume that all rates up to 70 y.o. are reasonably reliable, whilst death rates for 80+ is less reliable and strongly dependent on social factors.
+
+
+## What to expect for Kenya
+
+For Kenya, we can get a rough estimate of the expected deaths by applying the rates to the Kenyan age pyramid. Note that we multiply by the Spanish detection rate, but this is not important as what is fixed by the Spanish survey is the product of the detection rate by the hospitalization (severe or critical) rates.  Thus, the assumption we are doing here is that hospitalization and acceptance to critical care are the same as European countries, irrelevant of the detection rate.
+
+We can also take into account that only about 90% of the population will be infected in case of no control or insufficient control measures.
+```{r}
+ken.age.pyram.17 <- as.matrix( read.table("Data/Kenya_5km_stats.dat", 
+										  header=FALSE) )[,3]
+kenya.projected.deaths.9 <- get.10y.from.5y(ken.age.pyram.17)* dat$srate * 
+	(dat$s2h*dat$h2d+dat$s2c*dat$c2d)*0.9
+print(paste('Total projected deaths:', floor(sum(kenya.projected.deaths.9)+0.5)))
+print( data.frame( age=seq(0,80,10), deaths=c(kenya.projected.deaths.9) ) )
+print( get.5y.from.10y(c(kenya.projected.deaths.9), spanish.estimate.count.17) )
+
+dtr <- (dat$s2h*dat$h2d+dat$s2c*dat$c2d)
+r.deaths <- dtr * dat$srate * get.10y.from.5y( ken.age.pyram.17 )
+t.deaths <- sum(r.deaths[1:8])
+#dtr <- as.vector(rbind(dtr, dtr))[1:17]
+#ken.age.pyram.17 * dtr
+newdeaths <- spline( x=seq(0,70,10), y=r.deaths[1:8], xout=seq(0,75,5))$y
+newdeaths <- newdeaths * t.deaths/ sum(newdeaths)
+newdeaths <- c(newdeaths, r.deaths[9])
+newdeaths / ken.age.pyram.17 / as.vector(rbind(dtr,dtr))[1:17]
+
+newrates <- spline( x=seq(0,80,10), y=dat$srate, xout=seq(0, 80, 5))$y
+newrates*as.vector(rbind(dtr,dtr))[1:17]*spanish.estimate.count.17*t.deaths/sum(newrates*as.vector(rbind(dtr,dtr))[1:17]*ken.age.pyram.17)
+```
+
+## Estimating number of infected worldwide
+
+We could use the number of deaths and the serological survey to estimate the fraction of the population infected by COVID-19. For instance Italy:
+
+```{r}
+ita.age.pyram.9 <- get.10y.from.5y( ita.age.pyram.17 )
+ita.est.9 <- ita.age.pyram.9*dat$srate*(dat$s2h*dat$h2d+dat$s2c*dat$c2d)*9
+print(ita.est.9)
+print(ITA)
+#sum(GER) / sum((get.10y.from.5y(ger.age.pyram.17)*sympt.rate.9*
+#			(symp_to_hosp.9*hosp_to_death.9+symp_to_ICUs.9*critic_to_death.9)))*100.0
+
+```
+
+This of course works if deaths are registered similarly among nations.  In addition, to apply this in general, we would need information on the distribution of cases by age for each country.  This is not available for all countries, so we adopt a very rough approach by assuming that the cases do follow the expected distribution. This would not be correct, for instance, for Canada, and is likely to be a bit far-fetched.  However, if we do insist in this approach, we can obtain an estimate of the fraction of the population who would result positive to a serological study in each country. We can use the JHSSE data set for the number of deaths (just to be sure I use data corresponding to 2 days earlier than the last day reported) and the UN estimates of population pyramids.
+
+Read global datasets on deaths and population pyramids
+
+```{r}
+library(dplyr)
+SELECTED.DATE <- 'X5.31.20'
+deaths <- read.csv("Data/time_series_covid19_deaths_global.csv", header=TRUE, 
+				   stringsAsFactors = FALSE)
+pops <- read.csv("Data/WPP2019_POP_F07_1_POPULATION_BY_AGE_BOTH_SEXES.csv", 
+				 header=TRUE, skip=16, stringsAsFactors = FALSE)
+```
+
+
+Perform some modification to match country names and exclude non-matching/missing countries.
+
+```{r}
+d.countries <- unique(deaths$Country.Region)
+
+names <- colnames(pops)
+names[3] <- "Country"
+colnames(pops) <- names
+# Reset some country names (incomplete)
+pops[pops$Country == "Iran (Islamic Republic of)",]$Country <- "Iran"
+pops[pops$Country == "Russian Federation",]$Country <- "Russia"
+pops[pops$Country == "Republic of Korea",]$Country <- "South Korea"
+pops[pops$Country == "United States of America",]$Country <- "US"
+pops[pops$Country == "Syrian Arab Republic",]$Country <- "Syria"
+
+p.countries <- unique(pops$Country)
+commonCountries <- d.countries[(d.countries %in% p.countries)]
+deaths <- select( deaths[which(deaths$Country.Region %in% commonCountries),], 
+				  Country.Region, Province.State, SELECTED.DATE )
+```
+
+Group countries that are detailed in terms of provinces/territories (for some countries this is incorrect, i.e. the UK, but the difference is quite small) and merge the two data sets
+```{r}
+deaths <- summarise_at( group_by(deaths, Country.Region), vars(SELECTED.DATE), sum)
+pops <- pops[which(pops$Country %in% commonCountries),]
+full <- merge(pops, deaths, by.x='Country', by.y='Country.Region', all=TRUE)
+full <- full[full$Reference.date..as.of.1.July. == 2020,]
+```
+
+
+Build estimates by distributing deaths to age groups and reverting transformation to positives using Spanish survey data. Also add projected deaths for 90% infected population
+
+```{r}
+format.rate <- function(x)  {return(floor(10000*x+0.5)/100.0)} 
+transRate.9 <- sympt.rate.9*(symp_to_hosp.9*hosp_to_death.9+symp_to_ICUs.9*critic_to_death.9)
+globalEstimates <- data.frame( Country=as.character(), 
+					 positive=as.numeric(), stringsAsFactors = FALSE )
+transRate.17 <- sympt.rate.17*(symp_to_hosp.17*hosp_to_death.17+symp_to_ICUs.17*critic_to_death.17)
+
+distributeCases <- function( total, distr )  {
+	normdistr <- distr / sum(distr)
+	return(total*normdistr)
+}
+
+getEstimates <- function( row ) {
+	pyramid.21 <- as.numeric(gsub(" ", "", row[9:29]))
+	pyramid.17 <- pyramid.21[1:17]*1000 # in thousands
+	pyramid.17[17] <- pyramid.17[17] + sum(pyramid.21[18:21])*1000 # idem
+	t.deaths <- as.numeric(gsub(" ","", row[SELECTED.DATE]))
+	d.deaths <- distributeCases(t.deaths, transRate.9*get.10y.from.5y(pyramid.17))
+	globalEstimates <<- rbind(globalEstimates, data.frame( Country=row$Country, 
+				Positives=format.rate(sum(d.deaths / transRate.9-d.deaths) / 
+									sum(pyramid.17)),
+				Deaths=t.deaths,
+				Projection=sum(pyramid.17*transRate.17*0.9) ))
+}
+dummy <- by(full, 1:nrow(full), getEstimates) # This avoids output
+globalEstimates <- globalEstimates[order(-globalEstimates$Positives),]
+print(globalEstimates)
+```
+
+Note that we are using the same approach for Spain, and the resulting percentage is higher than the one measured by the survey.  This is a direct consequence of the fact that the implied distribution of cases is not the true one (checked, not shown).  Not sure how to associate an error (bootstrapping?).
+
+Summing up all projections we have the expected number of worldwide deaths.
+```{r}
+print(paste('Expected number of worldwide deaths is:', 
+			floor(sum(globalEstimates$Projection))/1000000,'millions'))
+```
+
+
+## References
+
+Spanish survey [ [https://www.mscbs.gob.es/gabinetePrensa/notaPrensa/pdf/13.05130520204528614.pdf](https://www.mscbs.gob.es/gabinetePrensa/notaPrensa/pdf/13.05130520204528614.pdf) ]
+
+Spanish cases at 17.05.2020 [ [https://www.mscbs.gob.es/profesionales/saludPublica/ccayes/alertasActual/nCov-China/documentos/Actualizacion_108_COVID-19.pdf](https://www.mscbs.gob.es/profesionales/saludPublica/ccayes/alertasActual/nCov-China/documentos/Actualizacion_108_COVID-19.pdf) ]
+
+Italian ICU study [ [https://jamanetwork.com/journals/jama/fullarticle/2764365](https://jamanetwork.com/journals/jama/fullarticle/2764365) ]
+
+Estimate of Rt in Lombardy [ [https://www.medrxiv.org/content/10.1101/2020.04.08.20056861v1](https://www.medrxiv.org/content/10.1101/2020.04.08.20056861v1) ]
+
+JHSSE data set [data](https://github.com/CSSEGISandData/COVID-19)
+
+Population estimates [United Nations, Department of Economic and Social Affairs, Population Division (2019). World Population Prospects 2019, Online Edition. Rev. 1.](https://population.un.org/wpp/Download/Standard/Population/)
+
+```{r}
+
+```

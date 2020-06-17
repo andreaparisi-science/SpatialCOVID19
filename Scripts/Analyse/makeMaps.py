@@ -1,17 +1,32 @@
 import math
+import sys
 
-handler = open("Run-001/DeryaSE-map-Weekly-000000-000.dat", "r")
+PROCESSES=12
+MAXWEEK=18
+MAXDATA = 1
+#COLUMN  = 3  # 5% sampling of cases
+COLUMN  = 1  # Cases
+TYPE    = 1
+
+
+if len(sys.argv) > 1:
+	country = sys.argv[1]
+	MAXDATA = int(sys.argv[2])
+	if MAXDATA < 0:
+		MAXDATA = -MAXDATA
+		directory = "Fits/Replica-{:03d}/"
+		TYPE = -1
+	else:
+		directory = "Run-{:03d}/"
+		TYPE = 1
+
+handler = open((directory+"DeryaSE-map-Weekly-000000-000.dat").format(1), "r")
 lines = handler.readlines()
 vec = lines[0].split(" ")
 ncols = int(vec[0])
 nrows = int(vec[1])
 handler.close()
 
-PROCESSES=12
-MAXWEEK=51
-MAXDATA = 3
-#COLUMN  = 3  # 5% sampling of cases
-COLUMN  = 1  # Cases
 
 
 pop  = [ [-1 for x in range(0, nrows)] for y in range(0, ncols) ]
@@ -37,10 +52,11 @@ def convertToColour( val, method ):
 	green  = [0.0,1.0,0.0]
 	cyan   = [0.0,1.0,1.0]
 	blue   = [0.0,0.0,1.0]
+	white  = [1.0,1.0,1.0]
 
 	ret = red
 	if method == 1:
-		col = mixcolours(black, red, val)
+		col = mixcolours(white, red, val)
 	elif method == 2:
 		if val < 0.25:
 			col = mixcolours(red, orange, val/0.25)
@@ -58,7 +74,7 @@ def convertToColour( val, method ):
 
 
 # Load counties ids
-handler = open("../../Kenya/Maps/Kenya_5km_ids.asc")
+handler = open("../../Data/"+country+"/Maps/"+country+"_5km_ids.asc")
 lines = handler.readlines()
 lines = lines[6:]
 maxid = -1
@@ -91,7 +107,10 @@ for kk in range(0,MAXWEEK+1):
 	mm = [ [-1.0 for x in range(0, nrows)] for y in range(0, ncols) ]
 	for jj in range(1,(MAXDATA+1)):
 		for qq in range(0,PROCESSES):
-			filename = "Run-{:03d}/DeryaSE-map-Weekly-{:06d}-{:03d}.dat".format(jj, kk, qq)
+			if TYPE == -1:
+				filename = (directory+"DeryaSE-map-Weekly-{:06d}-{:03d}.dat").format(jj-1, kk, qq)
+			else:
+				filename = (directory+"DeryaSE-map-Weekly-{:06d}-{:03d}.dat").format(jj, kk, qq)
 			handler = open(filename, "r")
 			lines = handler.readlines()
 			for zz in range(2, len(lines)):
@@ -126,8 +145,10 @@ for kk in range(0,MAXWEEK+1):
 
 	for yy in range(nrows-1,-1,-1):
 		for xx in range(0,ncols):
-			if (mm[xx][yy] == -1):
-				handler.write( "192 255 255 ")
+			if (ids[xx][yy] == 0):
+				handler.write( "127 255 255 ")
+			elif (mm[xx][yy] == -1):
+				handler.write( "255 255 255 ")
 			else:
 	#			level = int(255*mm[xx][yy]/(maxVal))
 				if (maxVal > 0):
@@ -184,6 +205,8 @@ for xx in range(0,ncols):
 print("minVal [" + str(minVal) + "] - maxVal [" + str(maxVal) + "]")
 minVal=6
 maxVal=26 # Max number of weeks in plots
+minVal=0
+maxVal=18 # Max number of weeks in plots
 
 handler = open("out-tmax.ppm".format(kk), "w")
 handler.write("P3 ")
@@ -302,6 +325,7 @@ print("minVal [" + str(minVal) + "] - maxVal [" + str(maxVal) + "]")
 #minVal= 
 
 maxVal=26 # Max number of weeks in plots
+maxVal=18 # Max number of weeks in plots
 handler = open("out-tmin.ppm".format(kk), "w")
 handler.write("P3 ")
 handler.write(str(ncols)+" "+str(nrows)+ " 255\n")

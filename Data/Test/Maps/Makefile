@@ -1,6 +1,6 @@
 CORES:=12
-GRIDRES:=5
-COUNTRY:=Kenya
+GRIDRES:=20
+COUNTRY:=Test
 
 all:
 	make macroareas

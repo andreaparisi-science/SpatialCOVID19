@@ -1,5 +1,5 @@
 if [ "$#" -eq 0 ]; then
-	wget -c https://www.deryase.org/Downloads/Installer/deryaSE_installer_rel_58.bin
+	wget -N https://www.deryase.org/Downloads/Installer/deryaSE_installer_rel_58.bin
 elif [ "$1" == "--update" ]; then
 	\rm -f deryaSE_installer_rel_58.bin
 	wget https://www.deryase.org/Downloads/Installer/deryaSE_installer_rel_58.bin
