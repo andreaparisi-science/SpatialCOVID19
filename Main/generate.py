@@ -23,11 +23,10 @@ else:
 		print("Unrecognized parameter value.\n")
 		sys.exit(1)
 
-nAgeGroups = 17
-TOTCLASSES = (10)*nAgeGroups
+nAgeGroups = 9
 
 outputLse  = "GENERAL:\n"
-outputLse += "\tPartfile\t\t\"../../../Data/" + country + "/Setup/" + country + "_" + str(simList['Default']['gridres']) + "km-{:03d}.ppm\"\n".format(simList['Default']['cores'])
+outputLse += "\tPartfile\t\t\"../../../../Data/" + country + "/Setup/" + country + "_" + str(simList['Default']['gridres']) + "km-{:03d}.ppm\"\n".format(simList['Default']['cores'])
 #outputLse += "\tPartfile\t\t\"../Simple.txt\"\n"
 outputLse += "\tLocations\t\t50\n"
 outputLse += readinit
@@ -48,7 +47,7 @@ else:
 
 outputLse += "\tAccessCycle\t\t1\n\n"
 outputLse += "POPULATIONS:\n"
-outputLse += "\tDefault	\"../../../Data/"+country+"/Setup/"+country+"_"+str(simList['Default']['gridres'])+"km.asc\"\thandleMobility\tRadiationNorm\t"+str(simList['Default']['mobility'])+"\n\n"
+outputLse += "\tDefault	\"../../../../Data/"+country+"/Setup/"+country+"_"+str(simList['Default']['gridres'])+"km.asc\"\thandleMobility\tRadiationNorm\t"+str(simList['Default']['mobility'])+"\n\n"
 #outputLse += "\tDefault	\"../../../"+country+"/Setup/"+country+"_"+str(gridres)+"km.asc\"\tNone\tNone\t0.0\n\n"
 
 outputClasses = "CLASSES:\n"
@@ -106,31 +105,20 @@ sympt_to_severe  = []
 sympt_to_critcal = []
 severe_to_death  = []
 critic_to_death  = []
-with open('../Data/Other/rates.csv') as csvfile:
+with open('../../../Data/Other/rates.csv') as csvfile:
 	readCSV = csv.reader(csvfile, delimiter=',')
 	next(readCSV)
 	for row in readCSV:
-		# Duplicate entries to get 10y rates to 5y groups
-		#sympt_rate.append( float(row[1]) )
-		#sympt_rate.append( float(row[1]) )
-		sympt_rate.append( 0.1 )
-		sympt_rate.append( 0.1 )
-		#sympt_to_severe.append( float(row[2]) )
-		#sympt_to_severe.append( float(row[2]) )
-		sympt_to_severe.append( 1.0 )
-		sympt_to_severe.append( 1.0 )
-		#sympt_to_critcal.append( float(row[3]) )
-		#sympt_to_critcal.append( float(row[3]) )
-		sympt_to_critcal.append( 1.0 )
-		sympt_to_critcal.append( 1.0 )
-		#severe_to_death.append( float(row[4]) )
-		#severe_to_death.append( float(row[4]) )
-		severe_to_death.append( 1.0 )
-		severe_to_death.append( 1.0 )
-		#critic_to_death.append( float(row[5]) )
-		#critic_to_death.append( float(row[5]) )
-		critic_to_death.append( 1.0 )
-		critic_to_death.append( 1.0 )
+		sympt_rate.append( float(row[1]) )
+		#sympt_rate.append( 0.1 )
+		sympt_to_severe.append( float(row[2]) )
+		#sympt_to_severe.append( 1.0 )
+		sympt_to_critcal.append( float(row[3]) )
+		#sympt_to_critcal.append( 1.0 )
+		severe_to_death.append( float(row[4]) )
+		#severe_to_death.append( 1.0 )
+		critic_to_death.append( float(row[5]) )
+		#critic_to_death.append( 1.0 )
 #sympt_to_severe  = [3.8, 3.8, 2.6, 2.6, 2.8, 2.8, 2.7, 2.7, 5.4, 5.4, 12.6, 12.6, 19.7, 19.7, 28.7, 28.7, 27.3]
 #sympt_to_critcal = [0.01, 0.01, 0.02, 0.02, 0.08, 0.08, 0.18, 0.18, 0.34, 0.34, 1.5, 1.5, 5.4, 5.4, 12.4, 12.4, 19.3]
 #severe_to_death  = [3.8, 3.8, 3.8, 3.8, 3.8, 3.8, 3.8, 4.0, 4.5, 5.6, 7.8, 11.3, 16.9, 23.2, 29.1, 34.8, 53.5]
@@ -181,66 +169,29 @@ outputParams += "\tfitRate\tNone\t" + str(simList['Default']['fitRate']) + "\n"
 outputParams += "\tfitThreshold\tNone\t" + str(simList['Default']['fitThreshold']) + "\n"
 outputParams += "\tavgFamilySize\tNone\t" + str(simList['Default']['avgFamilySize']) + "\n"
 
-KK_home   = [ [0.0 for xx in range(0,nAgeGroups)] for yy in range(0, nAgeGroups) ]
-KK_work   = [ [0.0 for xx in range(0,nAgeGroups)] for yy in range(0, nAgeGroups) ]
-KK_school = [ [0.0 for xx in range(0,nAgeGroups)] for yy in range(0, nAgeGroups) ]
-KK_other  = [ [0.0 for xx in range(0,nAgeGroups)] for yy in range(0, nAgeGroups) ]
+#for xx in range(0, 16):
+#	KK_home[xx][nAgeGroups-1]   = KK_home[xx][nAgeGroups-2]
+#	KK_work[xx][nAgeGroups-1]   = KK_work[xx][nAgeGroups-2]
+#	KK_school[xx][nAgeGroups-1] = KK_school[xx][nAgeGroups-2]
+#	KK_other[xx][nAgeGroups-1]  = KK_other[xx][nAgeGroups-2]
 
-xx = 0
-with open('../Data/'+country+'/Contacts/'+country+'ContactMatrix_home.csv') as csvfile:
-	readCSV = csv.reader(csvfile, delimiter='\t')
-	for row in readCSV:
-		for yy in range(0, nAgeGroups-1):
-			KK_home[xx][yy] = float(row[yy])
-		xx = xx+1
-
-xx = 0
-with open('../Data/'+country+'/Contacts/'+country+'ContactMatrix_work.csv') as csvfile:
-	readCSV = csv.reader(csvfile, delimiter='\t')
-	for row in readCSV:
-		for yy in range(0, nAgeGroups-1):
-			KK_work[xx][yy] = float(row[yy])
-		xx = xx+1
-
-xx = 0
-with open('../Data/'+country+'/Contacts/'+country+'ContactMatrix_school.csv') as csvfile:
-	readCSV = csv.reader(csvfile, delimiter='\t')
-	for row in readCSV:
-		for yy in range(0, nAgeGroups-1):
-			KK_school[xx][yy] = float(row[yy])
-		xx = xx+1
-
-xx = 0
-with open('../Data/'+country+'/Contacts/'+country+'ContactMatrix_other.csv') as csvfile:
-	readCSV = csv.reader(csvfile, delimiter='\t')
-	for row in readCSV:
-		for yy in range(0, nAgeGroups-1):
-			KK_other[xx][yy] = float(row[yy])
-		xx = xx+1
-
-for xx in range(0, nAgeGroups-1):
-	KK_home[xx][nAgeGroups-1]   = KK_home[xx][nAgeGroups-2]
-	KK_work[xx][nAgeGroups-1]   = KK_work[xx][nAgeGroups-2]
-	KK_school[xx][nAgeGroups-1] = KK_school[xx][nAgeGroups-2]
-	KK_other[xx][nAgeGroups-1]  = KK_other[xx][nAgeGroups-2]
-
-for yy in range(0, nAgeGroups):
-	KK_home[nAgeGroups-1][yy]   = KK_home[nAgeGroups-2][yy]
-	KK_work[nAgeGroups-1][yy]   = KK_work[nAgeGroups-2][yy]
-	KK_school[nAgeGroups-1][yy] = KK_school[nAgeGroups-2][yy]
-	KK_other[nAgeGroups-1][yy]  = KK_other[nAgeGroups-2][yy]
+#for yy in range(0, nAgeGroups):
+#	KK_home[nAgeGroups-1][yy]   = KK_home[nAgeGroups-2][yy]
+#	KK_work[nAgeGroups-1][yy]   = KK_work[nAgeGroups-2][yy]
+#	KK_school[nAgeGroups-1][yy] = KK_school[nAgeGroups-2][yy]
+#	KK_other[nAgeGroups-1][yy]  = KK_other[nAgeGroups-2][yy]
 
 for xx in range(0, nAgeGroups):
 	for yy in range(0, nAgeGroups):
 		outputParams += "\tKK_" + str(xx) + "_"+ str(yy) + "\tNone\t1.0\n"
-#		outputParams += "\tKK_home_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
-#		outputParams += "\tKK_work_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
-#		outputParams += "\tKK_school_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
-#		outputParams += "\tKK_other_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
-		outputParams += "\tKK_home_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_home[xx][yy]) + "\n"
-		outputParams += "\tKK_work_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_work[xx][yy]) + "\n"
-		outputParams += "\tKK_school_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_school[xx][yy]) + "\n"
-		outputParams += "\tKK_other_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_other[xx][yy]) + "\n"
+		outputParams += "\tKK_home_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
+		outputParams += "\tKK_work_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
+		outputParams += "\tKK_school_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
+		outputParams += "\tKK_other_" + str(xx) + "_" + str(yy) + "\tNone\t1.0\n"
+#		outputParams += "\tKK_home_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_home[xx][yy]) + "\n"
+#		outputParams += "\tKK_work_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_work[xx][yy]) + "\n"
+#		outputParams += "\tKK_school_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_school[xx][yy]) + "\n"
+#		outputParams += "\tKK_other_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_other[xx][yy]) + "\n"
 
 for xx in range(0, nAgeGroups):
 	outputParams += "\tzz_" + str(xx) + "\tNone\t"+str(sympt_rate[xx])+"\n"
@@ -436,28 +387,42 @@ outputContact += "}\n\n"
 
 outputContact += "void  initContactMatrix()  {\n"
 outputContact += "\tint nAgeGroups = groups[ groups.size()-1 ] + 1;\n"
-#outputContact += "\tdouble  totContacts;\n"
-#outputContact += "\tifstream  handler;\n"
+outputContact += "\tdouble  totContacts = 0.0;\n"
+outputContact += "\tifstream  handler;\n"
+outputContact += "\tchar  filename[300];\n"
+outputContact += "\tstd::vector< std::vector<double> >  KKbase, KKreduced;\n"
+outputContact += "\tKKbase.resize( 16, std::vector<double>(16) );\n"
+outputContact += "\tKKreduced.resize( nAgeGroups, std::vector<double>( nAgeGroups, 0.0 ) );\n"
+outputContact += "\tstd::vector<int>  agePyram(17);\n"
+outputContact += "\tsprintf( filename, agePyramidFile.c_str(), GRIDRES, 17 );\n"
+outputContact += "\thandler.open( std::string(filename) );\n"
+outputContact += "\tif (!handler.good())  {\n"
+outputContact += "\t\tsimStatus.exit(\"Age pyramid file [\" + std::string(filename) + \"] not found\" );\n"
+outputContact += "\t}\n"
+outputContact += "\tfor (int yy=0; yy < 17; yy++)  {\n"
+outputContact += "\t\thandler >> agePyram[yy];\n"
+outputContact += "\t}\n"
+outputContact += "\thandler.close();\n"
+outputContact += "\tKKbase.resize( 17, std::vector<double>(17) );\n"
 
-#for el in contactTypes:
-#	outputContact += "\thandler.open( contactMatrixFile + \"" + el + ".csv\" );\n"
-#	outputContact += "\tif (!handler.good())  {\n"
-#	outputContact += "\t\tsimStatus.exit(\"Contact matrix file [\" + contactMatrixFile + \"" + el + ".csv] not found\" );\n"
-#	outputContact += "\t}\n"
-#	#outputContact += "std::cout << sizes[0] << \"\t\" << params.KK_home_0_0 << \"\t\" << simStatus.getTotalPopulationSize() << \"\\n\" << std::flush;\n"
-#	for ii in range(0, 16):
-#		for jj in range(0, 16):
-#			outputContact += "\thandler >> params.KK" + el + "_" + str(ii) + "_" + str(jj) + ";\n"
-#			outputContact += "\ttotContacts += sizes[" +str(ii) + "]*params.KK" + el + "_"+str(ii)+"_"+str(jj)+";\n"
-#	#	outputContact += "\tparams.KK_" + str(ii) + "_16 = params.KK_" + str(ii) + "_15;\n"
-#	#for jj in range(0, nAgeGroups-1):
-#	#	outputContact += "\tparams.KK_16_" + str(jj) + " = params.KK_15_" + str(jj) + ";\n"
-#	for ii in range(0, 16):
-#		outputContact += "\tparams.KK" + el + "_" + str(ii) + "_16 = params.KK" + el + "_" + str(ii) + "_15;\n"
-#	for ii in range(0, nAgeGroups):
-#		outputContact += "\tparams.KK" + el + "_16_" + str(ii) + " = params.KK" + el + "_15_" + str(ii) + ";\n"
-#	outputContact += "\tstd::cout << totContacts/simStatus.getTotalPopulationSize() << \" \" << params.R0/(totContacts/simStatus.getTotalPopulationSize()) << \"\\n\";\n"
-#	outputContact += "\thandler.close();\n\n"
+for el in contactTypes:
+	outputContact += "\thandler.open( contactMatrixFile + \"" + el + ".csv\" );\n"
+	outputContact += "\tif (!handler.good())  {\n"
+	outputContact += "\t\tsimStatus.exit(\"Contact matrix file [\" + contactMatrixFile + \"" + el + "] not found\" );\n"
+	outputContact += "\t}\n"
+	outputContact += "\tfor (int yy=0; yy < 16; yy++)  {\n"
+	outputContact += "\t\tfor (int xx=0; xx < 16; xx++)  {\n"
+	outputContact += "\t\t\thandler >> KKbase[xx][yy];\n"
+	outputContact += "\t\t}\n"
+	outputContact += "\t}\n"
+	outputContact += "\tKKreduced = reduceContactMatrix( KKbase, agePyram );\n"
+
+	for ii in range(0, nAgeGroups):
+		for jj in range(0, nAgeGroups):
+			outputContact += "\tparams.KK" + el + "_" + str(ii) + "_" + str(jj) + " = KKreduced[" + str(ii) + "][" + str(jj) + "];\n"
+			outputContact += "\ttotContacts += sizes[" +str(ii) + "]*params.KK" + el + "_"+str(ii)+"_"+str(jj)+";\n"
+	outputContact += "\tstd::cout << totContacts/simStatus.getTotalPopulationSize() << \" \" << params.R0/(totContacts/simStatus.getTotalPopulationSize()) << \"\\n\";\n"
+	outputContact += "\thandler.close();\n\n"
 
 outputContact += "\tlocalKK_home.resize( " + str(nAgeGroups) + " );\n";
 outputContact += "\tfor (int qq = 0; qq < " + str(nAgeGroups) + "; qq++)  {\n";
@@ -474,7 +439,6 @@ contents = handler.readlines()
 handler.close()
 
 handler = open( "lse-userdefined.cpp", "w" )
-#handler.writelines( "int constexpr TOTCLASSES = " + str(TOTCLASSES) + ";\n" )
 if simList['Default']['tauleap'] == 'yes':
 	handler.writelines( "#define  TAULEAP\n" )
 if simList['Default']['model'] == 'seir':

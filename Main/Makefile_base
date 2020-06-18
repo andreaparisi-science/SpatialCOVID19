@@ -12,51 +12,50 @@ prepare:
 	\rm -f runderyaSE*
 
 write:
-	\rm -f ./.tauleap
-	g++ -c SplineInterpolator.cpp
-	g++ -c Policy.cpp
-	g++ -c Intervention.cpp
-	python3 generate.py ${COUNTRY} Write > CoV.lse
-	echo GRIDRES:=${GRIDRES}  > Makefile_make
-	echo COUNTRY:=${COUNTRY} >> Makefile_make
-	cat Makefile_make_base   >> Makefile_make
-	make -f Makefile_make  deryaSEnorm
-	mkdir -p ${OUTPUT}
-	mkdir -p ${OUTPUT}/Base
+	cd Sources && \
+	\rm -f ./.tauleap && \
+	g++ -c SplineInterpolator.cpp && \
+	g++ -c Policy.cpp && \
+	g++ -c Intervention.cpp && \
+	python3 generate.py ${COUNTRY} Write > CoV.lse && \
+	echo GRIDRES:=${GRIDRES}  > Makefile_make && \
+	echo COUNTRY:=${COUNTRY} >> Makefile_make && \
+	cat Makefile_make_base   >> Makefile_make && \
+	make -f Makefile_make  deryaSEnorm && \
+	mkdir -p ${OUTPUT} && \
+	mkdir -p ${OUTPUT}/Base && \
 	mv runderyaSE ${OUTPUT}/Base/runderyaSEwrite
-	make sources
 
 runs:
-	\rm -f ./.tauleap
-	g++ -c SplineInterpolator.cpp
-	g++ -c Policy.cpp
-	g++ -c Intervention.cpp
-	python3 generate.py ${COUNTRY} Read > CoV.lse
-	echo GRIDRES:=${GRIDRES}  > Makefile_make
-	echo COUNTRY:=${COUNTRY} >> Makefile_make
-	cat Makefile_make_base   >> Makefile_make
-	make -f Makefile_make  deryaSEnorm
-	mkdir -p ${OUTPUT}
-	mv runderyaSE ${OUTPUT}/runderyaSEread
-	cp scriptruns.sh ${OUTPUT}/
+	cd Sources && \
+	\rm -f ./.tauleap && \
+	g++ -c SplineInterpolator.cpp && \
+	g++ -c Policy.cpp && \
+	g++ -c Intervention.cpp && \
+	python3 generate.py ${COUNTRY} Read > CoV.lse && \
+	echo GRIDRES:=${GRIDRES}  > Makefile_make && \
+	echo COUNTRY:=${COUNTRY} >> Makefile_make && \
+	cat Makefile_make_base   >> Makefile_make && \
+	make -f Makefile_make  deryaSEnorm && \
+	mkdir -p ${OUTPUT} && \
+	mv runderyaSE ${OUTPUT}/runderyaSEread && \
+	cp scriptruns.sh ${OUTPUT}/ && \
 	touch ${OUTPUT}/EXEC
-	make sources
 
 fits:
-	\rm -f ./.tauleap
-	g++ -c SplineInterpolator.cpp
-	g++ -c Policy.cpp
-	g++ -c Intervention.cpp
-	python3 generate.py ${COUNTRY} Read > CoV.lse
-	echo GRIDRES:=${GRIDRES}  > Makefile_make
-	echo COUNTRY:=${COUNTRY} >> Makefile_make
-	cat Makefile_make_base   >> Makefile_make
-	make -f Makefile_make  deryaSEfits
-	mkdir -p ${OUTPUT}
-	mkdir -p ${OUTPUT}/Fits
-	mv runderyaSE ${OUTPUT}/Fits/runderyaSEfit
+	\rm -f ./.tauleap && \
+	g++ -c SplineInterpolator.cpp && \
+	g++ -c Policy.cpp && \
+	g++ -c Intervention.cpp && \
+	python3 generate.py ${COUNTRY} Read > CoV.lse && \
+	echo GRIDRES:=${GRIDRES}  > Makefile_make && \
+	echo COUNTRY:=${COUNTRY} >> Makefile_make && \
+	cat Makefile_make_base   >> Makefile_make && \
+	make -f Makefile_make  deryaSEfits && \
+	mkdir -p ${OUTPUT} && \
+	mkdir -p ${OUTPUT}/Fits && \
+	mv runderyaSE ${OUTPUT}/Fits/runderyaSEfit && \
 	cp scriptfits.sh ${OUTPUT}/
-	make sources
 
 sources:
 	mkdir -p ${OUTPUT}/Sources

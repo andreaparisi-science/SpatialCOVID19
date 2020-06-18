@@ -1,7 +1,6 @@
 CORES=12
 GRIDRES=5
-COUNTRY=Kenya
-OUTDIR=OutKenya
+COUNTRY=Italy
 
 PROCS=$(printf "%03d" ${CORES})
 
@@ -17,7 +16,7 @@ cd ..
 echo -e "\033[36;1mDownloading maps\033[0m"
 cd Data/${COUNTRY}
 cd Gridded
-bash install.sh
+#bash install.sh
 
 echo -e "\033[36;1mRescaling maps\033[0m"
 cd ../Setup
@@ -27,8 +26,8 @@ echo COUNTRY:=${COUNTRY} >> Makefile
 echo OUTDIR:=Out${COUNTRY} >> Makefile
 echo PROCS:=${PROCS} >> Makefile
 cat Makefile_base >> Makefile
-make
-make part
+#make
+#make part
 
 echo -e "\033[36;1mWorking on maps\033[0m"
 cd ../Maps
@@ -60,16 +59,30 @@ echo COUNTRY:=${COUNTRY} >> Makefile
 cat Makefile_base >> Makefile
 
 echo -e "\033[36;1mSetting up models\033[0m"
-cd ../../../../Master
+cd ../../../../Scenarios/
+mkdir -p Default/Sources/
+cp ../Main/makeScenario.sh .
+cd Default/
+cp ../../Main/Makefile_base .
 echo CORES:=${CORES} > Makefile
 echo GRIDRES:=${GRIDRES} >> Makefile
 echo COUNTRY:=${COUNTRY} >> Makefile
-echo OUTDIR:=${OUTDIR} >> Makefile
 cat Makefile_base >> Makefile
 
-echo CORES:=${CORES} > Makefile_make
-echo GRIDRES:=${GRIDRES} >> Makefile_make
-echo COUNTRY:=${COUNTRY} >> Makefile_make
-cat Makefile_make_base >> Makefile_make
+cd Sources/
+cp ../../../Main/Makefile_make_base .
+cp ../../../Main/config.py .
+cp ../../../Main/scriptruns.sh .
+cp ../../../Main/scriptfits.sh .
+cp ../../../Main/*-setup.cpp .
+ln -sf ../../../Main/lse-userdefined-base.cpp
+ln -sf ../../../Main/generate.py
+ln -sf ../../../Main/Intervention.cpp
+ln -sf ../../../Main/Intervention.h
+ln -sf ../../../Main/Policy.cpp
+ln -sf ../../../Main/Policy.h
+ln -sf ../../../Main/SplineInterpolator.cpp
+ln -sf ../../../Main/SplineInterpolator.h
+
 echo -e "\033[36;1mReady to build models.  Use make write, make read, make fits or make nofam.\033[0m"
 

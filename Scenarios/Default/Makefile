@@ -1,7 +1,7 @@
 CORES:=12
 GRIDRES:=5
-COUNTRY:=Kenya
-OUTPUT  := ../Output
+COUNTRY:=Italy
+OUTPUT  := ../Output/${OUTDIR}
 CWD := $(shell pwd)
 OPTS = $(eval OPTS := $$(shell bash testTauleap.sh))$(OPTS)
 
@@ -27,7 +27,7 @@ write:
 	make -f Makefile_make  deryaSEnorm && \
 	mkdir -p ${OUTPUT} && \
 	mkdir -p ${OUTPUT}/Base && \
-	mv runderyaSE ${OUTPUT}/Base/runderyaSEwrite && \
+	mv runderyaSE ${OUTPUT}/Base/runderyaSEwrite
 
 runs:
 	cd Sources && \
@@ -42,11 +42,10 @@ runs:
 	make -f Makefile_make  deryaSEnorm && \
 	mkdir -p ${OUTPUT} && \
 	mv runderyaSE ${OUTPUT}/runderyaSEread && \
-	cp scriptruns.sh ${OUTPUT}/  && \
+	cp scriptruns.sh ${OUTPUT}/ && \
 	touch ${OUTPUT}/EXEC
 
 fits:
-	cd Sources && \
 	\rm -f ./.tauleap && \
 	g++ -c SplineInterpolator.cpp && \
 	g++ -c Policy.cpp && \

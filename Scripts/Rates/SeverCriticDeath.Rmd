@@ -72,11 +72,17 @@ spanish.survey.posit.17[17] <- spanish.survey.posit.17[17] + spanish.survey.posi
 	spanish.survey.posit.20[20]
 ```
 
-Estimate positive counts on national basis using the 17 age groups
+Reduce data of spanish survey to 10y age groups
 ```{r}
-spanish.survey.perc.17 <- spanish.survey.posit.17 / spanish.survey.count.17
-spanish.estimate.count.17 <- spanish.survey.perc.17 * age.pyram.17
-print(paste('Check: 5% ~', sum(spanish.estimate.count.17)/(sum(age.pyram.17))*100.0) )
+spanish.survey.count.9 <- get.10y.from.5y( spanish.survey.count.17 )
+spanish.survey.posit.9 <- get.10y.from.5y( spanish.survey.posit.17 )
+```
+
+Estimate positive counts on national basis using the 5 years age groups
+```{r}
+spanish.survey.perc.9 <- spanish.survey.posit.9 / spanish.survey.count.9
+spanish.estimate.count.9 <- spanish.survey.perc.9 * age.pyram.9
+print(paste('Check: 5% ~', sum(spanish.estimate.count.9)/(sum(age.pyram.9))*100.0) )
 ```
 
 ## Admission to ICU and overall (severe + critical) death rates
@@ -97,20 +103,10 @@ total.deaths <- 27650
 cases.deaths.9 <- cases.deaths.9*total.deaths/(sum(cases.deaths.9))
 ```
 
-Distribute total cases to 5-years age classes distributing by age prevalence
-```{r}
-cases.total.17 <- get.5y.from.10y( cases.total.9, spanish.estimate.count.17 )
-cases.deaths.17 <- get.5y.from.10y( cases.deaths.9, spanish.estimate.count.17 )
-print( paste("Check: ", sum(cases.total.9),'=',sum(cases.total.17)) )
-print( paste("Check: ", sum(cases.deaths.9),'=',sum(cases.deaths.17)) )
-```
 
-
-Determine detection (sympt) rate. This is the rate of detection of cases, not truly asymptomatic rates. This is given by the count of detected cases divided by the count of totally infected plus the dead individuals (which are there but would not appear in the count of individuals affected by COVID19). We get the rates for 5y and 10y age groups.
+Determine ascertainment rate. This is the rate of detection of cases, not asymptomatic rates. This is given by the count of detected cases divided by the count of totally infected plus the dead individuals (which are there but would not appear in the count of individuals affected by COVID19). We get the rates for 10y age groups.
 ```{r}
-sympt.rate.17 <- cases.total.17 / (spanish.estimate.count.17+cases.deaths.17)
-print(sympt.rate.17)
-sympt.rate.9 <- cases.total.9 / get.10y.from.5y(spanish.estimate.count.17+cases.deaths.17)
+sympt.rate.9 <- cases.total.9 / (spanish.estimate.count.9+cases.deaths.9)
 print(sympt.rate.9)
 ```
 
@@ -229,22 +225,17 @@ print(cases.hosp.9/cases.total.9*hosp_to_ICUs.9)
 print("The last two should be the same")
 ```
 
-Output all rates, assuming 17 age groups (simulation ready... more or less: see at the end)
+Output all rates, assuming 5y age groups (simulation ready... more or less: see at the end)
 ```{r}
-symp_to_hosp.17 <- c(rbind(symp_to_hosp.9, symp_to_hosp.9))[1:17]
-symp_to_ICUs.17 <- c(rbind(symp_to_ICUs.9, symp_to_ICUs.9))[1:17]
-hosp_to_ICUs.17 <- c(rbind(hosp_to_ICUs.9, hosp_to_ICUs.9))[1:17]
-hosp_to_death.17 <- c(rbind(hosp_to_death.9, hosp_to_death.9))[1:17]
 symp_to_death.9 <- symp_to_hosp.9*hosp_to_death.9 + symp_to_ICUs.9*critic_to_death.9
-critic_to_death.17 <- c(rbind(critic_to_death.9, critic_to_death.9))[1:17]
 dat <- data.frame( age=seq(0,8*10, by=10), srate=c(sympt.rate.9), 
 				   s2h=symp_to_hosp.9, s2c=symp_to_ICUs.9, 
 				   h2d=c(hosp_to_death.9), c2d=c(critic_to_death.9) )
 #write.csv(dat, file="../../Data/Other/rates.csv", row.names=FALSE)
-tail( dat, n=18 )
+tail( dat, n=10 )
 ```
 
-The interesting aspect of these rates is that they are not strictly dependent on the knowledge of the detection rate.  In other words, sympt.rate.17*symp_to_hosp.17 is the rate an average infected individual will be hospitalized (severe case), independently on being symptomatic or asymptomatic. That means that as long as we have a detection rate, or better a symptomatic rate that is compatible with (meaning greather than) the hospitalization rate, we can rescale one of the terms of the multiplication according to what the other term becomes.  What is invariant is the product.  By splitting the product into detection rate and hospitalization rate, we retain the information on the detection rate: this could be used for comparison between countries.
+The interesting aspect of these rates is that they are not strictly dependent on the knowledge of the detection rate.  In other words, sympt.rate.9*symp_to_hosp.9 is the rate an average infected individual will be hospitalized (severe case), independently on being symptomatic or asymptomatic. That means that as long as we have a detection rate, or better a symptomatic rate that is compatible with (meaning greather than) the hospitalization rate, we can rescale one of the terms of the multiplication according to what the other term becomes.  What is invariant is the product.  By splitting the product into detection rate and hospitalization rate, we retain the information on the detection rate: this could be used for comparison between countries.
 
 
 ## Comparisons and checks
@@ -257,7 +248,7 @@ How do expected deaths for Spain based on above numbers compare with those predi
 ```{r}
 expected.deaths.9 <- age.pyram.9*sympt.rate.9*(symp_to_hosp.9*hosp_to_death.9+
 												  	symp_to_ICUs.9*critic_to_death.9)
-print(sum(expected.deaths.17))
+print(sum(expected.deaths.9))
 IFR <- c(0.00161, 0.00695, 0.0309, 0.0844, 0.161, 0.595, 1.93, 4.28, 7.80)/100.0
 print(sum(age.pyram.9*IFR))
 ```
@@ -417,24 +408,12 @@ We can also take into account that only about 90% of the population will be infe
 ```{r}
 ken.age.pyram.17 <- as.matrix( read.table("Data/Kenya_5km_stats.dat", 
 										  header=FALSE) )[,3]
+ken.age.pyram.9 <- get.10y.from.5y( ken.age.pyram.17 )
 kenya.projected.deaths.9 <- get.10y.from.5y(ken.age.pyram.17)* dat$srate * 
 	(dat$s2h*dat$h2d+dat$s2c*dat$c2d)*0.9
 print(paste('Total projected deaths:', floor(sum(kenya.projected.deaths.9)+0.5)))
 print( data.frame( age=seq(0,80,10), deaths=c(kenya.projected.deaths.9) ) )
-print( get.5y.from.10y(c(kenya.projected.deaths.9), spanish.estimate.count.17) )
 
-dtr <- (dat$s2h*dat$h2d+dat$s2c*dat$c2d)
-r.deaths <- dtr * dat$srate * get.10y.from.5y( ken.age.pyram.17 )
-t.deaths <- sum(r.deaths[1:8])
-#dtr <- as.vector(rbind(dtr, dtr))[1:17]
-#ken.age.pyram.17 * dtr
-newdeaths <- spline( x=seq(0,70,10), y=r.deaths[1:8], xout=seq(0,75,5))$y
-newdeaths <- newdeaths * t.deaths/ sum(newdeaths)
-newdeaths <- c(newdeaths, r.deaths[9])
-newdeaths / ken.age.pyram.17 / as.vector(rbind(dtr,dtr))[1:17]
-
-newrates <- spline( x=seq(0,80,10), y=dat$srate, xout=seq(0, 80, 5))$y
-newrates*as.vector(rbind(dtr,dtr))[1:17]*spanish.estimate.count.17*t.deaths/sum(newrates*as.vector(rbind(dtr,dtr))[1:17]*ken.age.pyram.17)
 ```
 
 ## Estimating number of infected worldwide
@@ -502,8 +481,6 @@ format.rate <- function(x)  {return(floor(10000*x+0.5)/100.0)}
 transRate.9 <- sympt.rate.9*(symp_to_hosp.9*hosp_to_death.9+symp_to_ICUs.9*critic_to_death.9)
 globalEstimates <- data.frame( Country=as.character(), 
 					 positive=as.numeric(), stringsAsFactors = FALSE )
-transRate.17 <- sympt.rate.17*(symp_to_hosp.17*hosp_to_death.17+symp_to_ICUs.17*critic_to_death.17)
-
 distributeCases <- function( total, distr )  {
 	normdistr <- distr / sum(distr)
 	return(total*normdistr)
@@ -513,13 +490,14 @@ getEstimates <- function( row ) {
 	pyramid.21 <- as.numeric(gsub(" ", "", row[9:29]))
 	pyramid.17 <- pyramid.21[1:17]*1000 # in thousands
 	pyramid.17[17] <- pyramid.17[17] + sum(pyramid.21[18:21])*1000 # idem
+	pyramid.9  <- get.10y.from.5y( pyramid.17 )
 	t.deaths <- as.numeric(gsub(" ","", row[SELECTED.DATE]))
-	d.deaths <- distributeCases(t.deaths, transRate.9*get.10y.from.5y(pyramid.17))
+	d.deaths <- distributeCases(t.deaths, transRate.9*pyramid.9)
 	globalEstimates <<- rbind(globalEstimates, data.frame( Country=row$Country, 
 				Positives=format.rate(sum(d.deaths / transRate.9-d.deaths) / 
-									sum(pyramid.17)),
+									sum(pyramid.9)),
 				Deaths=t.deaths,
-				Projection=sum(pyramid.17*transRate.17*0.9) ))
+				Projection=sum(pyramid.9*transRate.9*0.9) ))
 }
 dummy <- by(full, 1:nrow(full), getEstimates) # This avoids output
 globalEstimates <- globalEstimates[order(-globalEstimates$Positives),]
@@ -549,6 +527,3 @@ JHSSE data set [data](https://github.com/CSSEGISandData/COVID-19)
 
 Population estimates [United Nations, Department of Economic and Social Affairs, Population Division (2019). World Population Prospects 2019, Online Edition. Rev. 1.](https://population.un.org/wpp/Download/Standard/Population/)
 
-```{r}
-
-```

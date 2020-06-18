@@ -1,10 +1,11 @@
 // Relevant files loaded at execution time
-static  std::string  contactMatrixFile = "../../../Data/Italy/Contacts/ItalyContactMatrix";
-static  std::string  ageGroupEsriFile  = "../../../Data/Italy/Setup/Italy_%dkm_%d.dat";
-static  std::string  identifiersFile   = "../../../Data/Italy/Maps/Italy_%dkm_ids.asc";
-static  std::string  timeseriesFile    = "../../../Data/Italy/Italy_timeseries.dat";
+static  std::string  contactMatrixFile = "../../../../Data/Italy/Contacts/ItalyContactMatrix";
+static  std::string  ageGroupEsriFile  = "../../../../Data/Italy/Setup/Italy_%dkm_%d.dat";
+static  std::string  agePyramidFile    = "../../../../Data/Italy/Setup/Italy_%dkm_g%02u_stats.dat";
+static  std::string  identifiersFile   = "../../../../Data/Italy/Maps/Italy_%dkm_ids.asc";
+static  std::string  timeseriesFile    = "../../../../Data/Italy/Italy_timeseries.dat";
 
-static  std::string  importedCasesFile = "../../../Data/Italy/Private/distrCases_byId.dat";
+static  std::string  importedCasesFile = "../../../../Data/Italy/Private/distrCases_byId.dat";
 // ITALY DATA
 //
 // 16th Feb first case (when the 1st detected appeared in hospital the first time)

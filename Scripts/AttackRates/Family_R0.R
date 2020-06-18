@@ -8,21 +8,35 @@ R0 <- 2.5
 #expectedVal <- 0.158
 expectedVal <- 0.30
 
+CONTACT.SIZE = 16
+
 DefaultDir = paste("/home/parisia/Projects/Infect/Programs/CoV/Public/Data/", Country, "/", sep='');
 
-KKhome <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_home.csv", sep=''), header=FALSE )
-KKwork <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_work.csv", sep=''), header=FALSE )
-KKschool <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_school.csv", sep=''), header=FALSE )
-KKother  <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_other.csv", sep=''), header=FALSE )
+if (CONTACT.SIZE == 16)  {
+	KKhome <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_home.csv", sep=''), header=FALSE )
+	KKwork <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_work.csv", sep=''), header=FALSE )
+	KKschool <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_school.csv", sep=''), header=FALSE )
+	KKother  <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_other.csv", sep=''), header=FALSE )
 
-KK = KKwork + KKschool + KKother
-KKhome = rbind(KKhome, KKhome[16,] )
-KKhome = cbind(KKhome, KKhome[,16] )
-KK = rbind(KK, KK[16,])
-KK = cbind(KK, KK[,16])
+	KK = KKwork + KKschool + KKother
+	KKhome = rbind(KKhome, KKhome[16,] )
+	KKhome = cbind(KKhome, KKhome[,16] )
+	KK = rbind(KK, KK[16,])
+	KK = cbind(KK, KK[,16])
 
-NN <- read.table( paste(DefaultDir, "Setup/", Country, "_5km_stats.dat", sep=''), header=FALSE )
-NN <- NN[,3]
+	NN <- read.table( paste(DefaultDir, "Setup/", Country, "_5km_g17_stats.dat", sep=''), header=FALSE )
+	NN <- NN[,3]
+} else if (CONTACT.SIZE == 9)  {
+	KKhome <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_home_g09.csv", sep=''), header=FALSE )
+	KKwork <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_work_g09.csv", sep=''), header=FALSE )
+	KKschool <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_school_g09.csv", sep=''), header=FALSE )
+	KKother  <- read.table( paste(DefaultDir, "Contacts/", Country, "ContactMatrix_other_g09.csv", sep=''), header=FALSE )
+
+	KK = KKwork + KKschool + KKother
+
+	NN <- read.table( paste(DefaultDir, "Setup/", Country, "_5km_g09_stats.dat", sep=''), header=FALSE )
+	NN <- NN[,3]
+}
 nAgeGroups <- length(NN);
 
 

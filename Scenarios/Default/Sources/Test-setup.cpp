@@ -2,12 +2,12 @@
 //#include "../Data/Kenya/CSVReader.cpp"
 
 // Relevant files loaded at execution time
-static  std::string  contactMatrixFile = "../../../../Data/Test/Contacts/TestContactMatrix";
-static  std::string  ageGroupEsriFile  = "../../../../Data/Test/Setup/Test_%dkm_%d.dat";
-static  std::string  identifiersFile   = "../../../../Data/Test/Maps/Test_%dkm_ids.asc";
-static  std::string  timeseriesFile    = "../../../../Data/Test/Private/Test_timeseries.dat";
+static  std::string  contactMatrixFile = "../../../Data/Test/Contacts/TestContactMatrix";
+static  std::string  ageGroupEsriFile  = "../../../Data/Test/Setup/Test_%dkm_%d.dat";
+static  std::string  identifiersFile   = "../../../Data/Test/Maps/Test_%dkm_ids.asc";
+static  std::string  timeseriesFile    = "../../../Data/Test/Private/Test_timeseries.dat";
 
-static  std::string  importedCasesFile = "../../../../Data/Test/Private/imported_byId_byAge.dat";
+static  std::string  importedCasesFile = "../../../Data/Test/Private/imported_byId_byAge.dat";
 
 enum  {EXTENT_NATIONAL = 1, EXTENT_COUNTY};
 Intervention  travelBan;

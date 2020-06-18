@@ -17,7 +17,7 @@ simList['Default'] = {
 	'avgFamilySize': 3.9,   # Average family size
 	'familyAttackMul': 1.0, # CORRECTIVE TERM TO BETA IN HOUSEHOLD
 	'nParticles': 140,  	# Number of particles for fitting procedure
-	'fitRestart': 1,		# Whether fitting should restart from scratch (1), continue fitting (0), reset fitting from last (2), forecasting (3); (reserved 4)
+	'fitRestart': 0,		# Whether fitting should restart from scratch (1), continue fitting (0), reset fitting from last (2), forecasting (3); (reserved 4)
 	'fitRate': 0.40,        # Fraction of discarded particles
 	'fitThreshold': 3.00,   # Target acceptance threshold (in %)
 }

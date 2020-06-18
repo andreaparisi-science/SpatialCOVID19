@@ -5,8 +5,8 @@ PROCS:=012
  
 map:
 	\rm -f lse-userdefined.*
-	\ln -s ../../../Master/Setup/lse-userdefined.cpp .
-	\ln -s ../../../Master/Setup/lse-userdefined.h .
+	\ln -s ../../../Main/Setup/lse-userdefined.cpp .
+	\ln -s ../../../Main/Setup/lse-userdefined.h .
 	deryaSE --define GRIDRES=${GRIDRES} --define COUNTRY=\"${COUNTRY}\" --define SHORTCOUNTRY=\"ken\" --define YEAR=\"2018\" --define REDUCE_FACTOR=0.1 CoV.lse
 	./runderyaSE 1
 
