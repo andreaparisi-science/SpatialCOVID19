@@ -61,15 +61,15 @@ spanish.survey.posit.20 <- spanish.survey.count.20 * spanish.survey.perc.20 / 10
 
 Reduce survey data to 17 age groups
 ```{r}
-spanish.survey.count.17 <- spanish.survey.count.20[2:18]
-spanish.survey.count.17[1] <- spanish.survey.count.17[1] + spanish.survey.count.20[1]
-spanish.survey.count.17[17] <- spanish.survey.count.17[17] + spanish.survey.count.20[19] +
-	spanish.survey.count.20[20]
+reduce.from.20.age.groups <- function( data )  {
+	resp <- data[2:18]
+	resp[1] <-resp[1] + data[1]
+	resp[17] <- resp[17] + data[19] + data[20]
+	return(resp)
+}
 
-spanish.survey.posit.17 <- spanish.survey.posit.20[2:18]
-spanish.survey.posit.17[1] <- spanish.survey.posit.17[1] + spanish.survey.posit.20[1]
-spanish.survey.posit.17[17] <- spanish.survey.posit.17[17] + spanish.survey.posit.20[19] +
-	spanish.survey.posit.20[20]
+spanish.survey.count.17 <- reduce.from.20.age.groups( spanish.survey.count.20 )
+spanish.survey.posit.17 <- reduce.from.20.age.groups( spanish.survey.posit.20 )
 ```
 
 Reduce data of spanish survey to 10y age groups
@@ -106,13 +106,8 @@ cases.deaths.9 <- cases.deaths.9*total.deaths/(sum(cases.deaths.9))
 
 Determine ascertainment rate. This is the rate of detection of cases, not asymptomatic rates. This is given by the count of detected cases divided by the count of totally infected plus the dead individuals (which are there but would not appear in the count of individuals affected by COVID19). We get the rates for 10y age groups.
 ```{r}
-sympt.rate.9 <- cases.total.9 / (spanish.estimate.count.9+cases.deaths.9)
-print(sympt.rate.9)
-```
-
-Derive estimated critical admissions (raw estimate) from Spanish cases
-```{r}
-hosp_to_ICUs.9 <- cases.ICUs.9/cases.hosp.9
+ascert.rate.9 <- cases.total.9 / (spanish.estimate.count.9+cases.deaths.9)
+print(ascert.rate.9)
 ```
 
 
@@ -212,25 +207,26 @@ ICUs.deaths.9 <- (cases.ICUs.9 * critic_to_death.9)
 hosp.deaths.9 <- cases.deaths.9 - ICUs.deaths.9
 # Death rates from non-ICU cases
 hosp_to_death.9 <- hosp.deaths.9 / (cases.hosp.9-cases.ICUs.9)
+hosp_to_ICUs.9 <- cases.ICUs.9 / cases.hosp.9
 ```
 
 Hospitalization rates are the crude rates, given cases.total is the number of detected cases.
 ```{r}
-symp_to_hosp.9 <- (cases.hosp.9-cases.ICUs.9)/cases.total.9
-symp_to_ICUs.9 <- cases.ICUs.9/cases.total.9
+ascert_to_hosp.9 <- (cases.hosp.9-cases.ICUs.9)/cases.total.9
+ascert_to_ICUs.9 <- cases.ICUs.9/cases.total.9
 print("Sympt to hosp")
-print(symp_to_hosp.9)
-print(symp_to_ICUs.9)
+print(ascert_to_hosp.9)
+print(ascert_to_ICUs.9)
 print(cases.hosp.9/cases.total.9*hosp_to_ICUs.9)
 print("The last two should be the same")
 ```
 
 Output all rates, assuming 5y age groups (simulation ready... more or less: see at the end)
 ```{r}
-symp_to_death.9 <- symp_to_hosp.9*hosp_to_death.9 + symp_to_ICUs.9*critic_to_death.9
-dat <- data.frame( age=seq(0,8*10, by=10), srate=c(sympt.rate.9), 
-				   s2h=symp_to_hosp.9, s2c=symp_to_ICUs.9, 
-				   h2d=c(hosp_to_death.9), c2d=c(critic_to_death.9) )
+ascert_to_death.9 <- ascert_to_hosp.9*hosp_to_death.9 + ascert_to_ICUs.9*critic_to_death.9
+dat <- data.frame( age=seq(0,8*10, by=10), arate=c(ascert.rate.9), 
+				   a2s=ascert_to_hosp.9, a2c=ascert_to_ICUs.9, 
+				   s2d=c(hosp_to_death.9), c2d=c(critic_to_death.9) )
 #write.csv(dat, file="../../Data/Other/rates.csv", row.names=FALSE)
 tail( dat, n=10 )
 ```
@@ -246,8 +242,8 @@ We can compare the resulting rates with with the Infectious Fatality Ratio (IFR)
 
 How do expected deaths for Spain based on above numbers compare with those predicted with Verity IFR?
 ```{r}
-expected.deaths.9 <- age.pyram.9*sympt.rate.9*(symp_to_hosp.9*hosp_to_death.9+
-												  	symp_to_ICUs.9*critic_to_death.9)
+expected.deaths.9 <- age.pyram.9*ascert.rate.9*(ascert_to_hosp.9*hosp_to_death.9+
+												  	ascert_to_ICUs.9*critic_to_death.9)
 print(sum(expected.deaths.9))
 IFR <- c(0.00161, 0.00695, 0.0309, 0.0844, 0.161, 0.595, 1.93, 4.28, 7.80)/100.0
 print(sum(age.pyram.9*IFR))
@@ -390,10 +386,10 @@ The plot still shows some variability in death incidence, but such variability i
 print( paste('Check: 27650 =',sum(cases.total.9 * (dat$s2h*dat$h2d + dat$s2c*dat$c2d)) ) )
 write.csv(dat, file="Output/rates.csv", row.names=FALSE)
 tail( dat, n=18 )
-sum(cases.deaths.9/(dat$srate*(dat$s2h*dat$h2d+dat$s2c*dat$c2d)))/sum(age.pyram.9)
-sum((spanish.estimate.count.9+cases.deaths.9)*dat$srate)
-sum((spanish.estimate.count.9+cases.deaths.9)*dat$srate*(dat$s2h*dat$h2d+dat$s2c*dat$c2d))
-sum(cases.deaths.9/(dat$srate*(dat$s2h*dat$h2d+dat$s2c*dat$c2d))-cases.deaths.9)
+sum(cases.deaths.9/(dat$arate*(dat$a2s*dat$s2d+dat$a2c*dat$c2d)))/sum(age.pyram.9)
+sum((spanish.estimate.count.9+cases.deaths.9)*dat$arate)
+sum((spanish.estimate.count.9+cases.deaths.9)*dat$arate*(dat$a2s*dat$s2d+dat$a2c*dat$c2d))
+sum(cases.deaths.9/(dat$arate*(dat$a2s*dat$s2d+dat$a2c*dat$c2d))-cases.deaths.9)
 sum(spanish.estimate.count.9)
 ```
 
@@ -409,8 +405,8 @@ We can also take into account that only about 90% of the population will be infe
 ken.age.pyram.17 <- as.matrix( read.table("Data/Kenya_5km_stats.dat", 
 										  header=FALSE) )[,3]
 ken.age.pyram.9 <- get.10y.from.5y( ken.age.pyram.17 )
-kenya.projected.deaths.9 <- get.10y.from.5y(ken.age.pyram.17)* dat$srate * 
-	(dat$s2h*dat$h2d+dat$s2c*dat$c2d)*0.9
+kenya.projected.deaths.9 <- get.10y.from.5y(ken.age.pyram.17)* dat$arate * 
+	(dat$a2s*dat$s2d+dat$a2c*dat$c2d)*0.9
 print(paste('Total projected deaths:', floor(sum(kenya.projected.deaths.9)+0.5)))
 print( data.frame( age=seq(0,80,10), deaths=c(kenya.projected.deaths.9) ) )
 
@@ -478,7 +474,7 @@ Build estimates by distributing deaths to age groups and reverting transformatio
 
 ```{r}
 format.rate <- function(x)  {return(floor(10000*x+0.5)/100.0)} 
-transRate.9 <- sympt.rate.9*(symp_to_hosp.9*hosp_to_death.9+symp_to_ICUs.9*critic_to_death.9)
+transRate.9 <- dat$arate*(dat$a2s*dat$s2d+dat$a2c*dat$c2d)
 globalEstimates <- data.frame( Country=as.character(), 
 					 positive=as.numeric(), stringsAsFactors = FALSE )
 distributeCases <- function( total, distr )  {
@@ -527,3 +523,29 @@ JHSSE data set [data](https://github.com/CSSEGISandData/COVID-19)
 
 Population estimates [United Nations, Department of Economic and Social Affairs, Population Division (2019). World Population Prospects 2019, Online Edition. Rev. 1.](https://population.un.org/wpp/Download/Standard/Population/)
 
+
+
+## APPENDIX - Estimate of error bars
+
+The first data set is 95% CI from Spanish Survey:
+
+```{r}
+spanish.survey.perc.low.20  <- c(0.3, 1.4, 2.3, 3.1, 3.0, 3.5, 3.7, 2.9, 3.8, 
+							4.5, 4.9, 4.9, 5.2, 5.0, 5.1, 5.7, 4.8, 3.8, 3.8, 3.2)
+spanish.survey.perc.high.20  <- c(3.8, 3.6, 4.1, 4.9, 4.9, 5.7, 6.1, 4.9, 5.6, 
+							6.2, 6.7, 6.9, 7.2, 7.0, 7.4, 8.3, 7.7, 6.9, 8.2, 10.0)
+
+spanish.survey.posit.low.20  <- spanish.survey.count.20 / spanish.survey.perc.low.20
+spanish.survey.posit.high.20 <- spanish.survey.count.20 / spanish.survey.perc.high.20
+spanish.survey.posit.low.17  <- reduce.from.20.age.groups( spanish.survey.posit.low.20 )
+spanish.survey.posit.high.17 <- reduce.from.20.age.groups( spanish.survey.posit.high.20 )
+spanish.survey.perc.low.17  <- spanish.survey.posit.low.17 / spanish.survey.count.17
+spanish.survey.perc.high.17 <- spanish.survey.posit.high.17 / spanish.survey.count.17
+
+spanish.estimate.count.low.9  <- get.10y.from.5y( spanish.survey.perc.low.17*age.pyram.17)
+spanish.estimate.count.high.9 <- get.10y.from.5y( spanish.survey.perc.high.17*age.pyram.17)
+
+print(cases.total.9 / (spanish.estimate.count.low.9+cases.deaths.9))
+print(cases.total.9 / (spanish.estimate.count.high.9+cases.deaths.9))
+```
+a

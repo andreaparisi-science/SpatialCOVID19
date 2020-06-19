@@ -1,14 +1,15 @@
 #Country = "Kenya"
-#Country = "Italy"
-Country = "China"
+#Country = "China"
+Country = "Italy"
 #HHsize <- 3.9   # Kenya
-#HHsize <- 2.40  # Italy
-HHsize <- 2.85  # Wuhan
+#HHsize <- 2.85  # Wuhan
+HHsize <- 2.31  # Italy
 R0 <- 2.5
 #expectedVal <- 0.158
 expectedVal <- 0.30
+#expectedVal <- -1
 
-CONTACT.SIZE = 16
+CONTACT.SIZE = 9
 
 DefaultDir = paste("/home/parisia/Projects/Infect/Programs/CoV/Public/Data/", Country, "/", sep='');
 
@@ -39,8 +40,22 @@ if (CONTACT.SIZE == 16)  {
 }
 nAgeGroups <- length(NN);
 
-
-print(paste("Age groups:", nAgeGroups))
+if (CONTACT.SIZE == 16)  {
+	KKhomeChina <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_home.csv", sep=''), header=FALSE )
+	KKworkChina <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_work.csv", sep=''), header=FALSE )
+	KKschoolChina <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_school.csv", sep=''), header=FALSE )
+	KKotherChina  <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_other.csv", sep=''), header=FALSE )
+	KKChina = KKhomeChina+KKworkChina+KKschoolChina+KKotherChina
+	lambdaCH <- Mod(eigen(KKChina)$values[1])
+} else if (CONTACT.SIZE == 9)  {
+	KKhomeChina <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_home_g09.csv", sep=''), header=FALSE )
+	KKworkChina <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_work_g09.csv", sep=''), header=FALSE )
+	KKschoolChina <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_school_g09.csv", sep=''), header=FALSE )
+	KKotherChina  <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_other_g09.csv", sep=''), header=FALSE )
+	KKChina = KKhomeChina+KKworkChina+KKschoolChina+KKotherChina
+	lambdaCH <- Mod(eigen(KKChina)$values[1])
+}
+print(lambdaCH)
 #print(NN)
 
 FF <- KKhome
@@ -55,14 +70,13 @@ for (ii in 1:nAgeGroups)  {
 # Now build LL households
 LL <- 1000
 MM <- 1000
-lambdaCH <- 16.7448
 tau <- 4
 R0_wm <- 1
 R0_HH <- 1
 betamul <- 1
 
 attackrateMul <- 1.0
-attackrate <- 0.158
+attackrate <- 1.0
 beta <- (R0/tau)/lambdaCH
 betagen <- beta*betamul
 for (zz in 1:10)  {

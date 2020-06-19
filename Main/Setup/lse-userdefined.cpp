@@ -12,8 +12,8 @@ void  accessCycle( int status )  {
 
 	switch (status)  {
 		case CYCLE_INIT:
-			//transformAgeGroupData( groups_17, false );
-			//transformAgeGroupData( groups_9,  true );
+			transformAgeGroupData( groups_17, false );
+			transformAgeGroupData( groups_9,  true );
 			transformContactMatrices( groups_9 );
 			break;
 		case CYCLE_START:
