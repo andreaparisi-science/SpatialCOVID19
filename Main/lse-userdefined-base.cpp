@@ -1775,7 +1775,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 #else
 // !!!!!!!			getSymptomaticRate( static_cast<int>(params.tau), params.zmax );
 #endif
-			params.somega = std::exp(params.omega) / simStatus.getTotalPopulationSize();
+			params.somega = params.omega / simStatus.getTotalPopulationSize();
 
 
 			chiSquared = 0.0;
