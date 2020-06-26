@@ -4,10 +4,10 @@ Country = "Italy"
 #HHsize <- 3.9   # Kenya
 #HHsize <- 2.85  # Wuhan
 HHsize <- 2.31  # Italy
-R0 <- 2.5
+R0 <- 3.0
 #expectedVal <- 0.158
-expectedVal <- 0.30
-#expectedVal <- -1
+#expectedVal <- 0.30
+expectedVal <- -1
 
 CONTACT.SIZE = 9
 
@@ -39,6 +39,8 @@ if (CONTACT.SIZE == 16)  {
 	NN <- NN[,3]
 }
 nAgeGroups <- length(NN);
+lambdaKK <- Mod(eigen(KKhome+KKwork+KKschool+KKother)$values[1])
+print(lambdaKK)
 
 if (CONTACT.SIZE == 16)  {
 	KKhomeChina <- read.table( paste(DefaultDir, "../China/Contacts/ChinaContactMatrix_home.csv", sep=''), header=FALSE )

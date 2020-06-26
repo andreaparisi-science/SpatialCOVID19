@@ -1,6 +1,6 @@
 CORES=12
 GRIDRES=5
-COUNTRY=Italy
+COUNTRY=Kenya
 
 PROCS=$(printf "%03d" ${CORES})
 
@@ -72,11 +72,11 @@ cat Makefile_base >> Makefile
 cd Sources/
 cp ../../../Main/Makefile_make_base .
 cp ../../../Main/config.py .
+cp ../../../Main/generate.py .
 cp ../../../Main/scriptruns.sh .
 cp ../../../Main/scriptfits.sh .
 cp ../../../Main/*-setup.cpp .
 ln -sf ../../../Main/lse-userdefined-base.cpp
-ln -sf ../../../Main/generate.py
 ln -sf ../../../Main/Intervention.cpp
 ln -sf ../../../Main/Intervention.h
 ln -sf ../../../Main/Policy.cpp

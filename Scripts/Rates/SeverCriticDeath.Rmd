@@ -119,9 +119,9 @@ Copy of Italian data: (n) -> number of cases, (d) -> number of deaths, (s) -> nu
 
 ```{r}
 # Derive estimated critical death rate from Italian data
-ita.ICUn.9 <- c(2, 2, 56, 56, 142, 423, 596, 340, 22)
-ita.ICUd.9 <- c(0, 0,  4,  4,  16,  63, 174, 136, 12)
-ita.ICUs.9 <- c(2, 2, 32, 32,  91, 270, 353, 164,  8)
+ita.ICUn.9 <- c(0, 2,  0, 56, 142, 423, 596, 340, 22)
+ita.ICUd.9 <- c(0, 0,  0,  4,  16,  63, 174, 136, 12)
+ita.ICUs.9 <- c(0, 2,  0, 32,  91, 270, 353, 164,  8)
 ```
 
 Estimate must take into account that a fraction of those still in hospital will die.
@@ -171,7 +171,7 @@ repigrowth <- function( n, R0, gamma )  {
 
 Search for death rate that produces the expected deaths by the 25th of May. The final number of deaths in ICU will be higher than the number of deaths registered up to the 25th.
 ```{r}
-findRate <- function(rate, age)  {
+estimate.ICU.deaths <- function(rate, age)  {
 	vals <- c()
 	nn = floor(ita.ICUn.9[age]*rate)
 	if (nn > 0)  {
@@ -184,8 +184,14 @@ findRate <- function(rate, age)  {
 	} else {
 		vals = 0
 	}
-	return( mean(vals)-ita.ICUd.9[age] )
+	return( vals )
 }
+
+
+findRate <- function(rate, age)  {
+	return( mean(estimate.ICU.deaths(rate, age)) - ita.ICUd.9[age] )
+}
+
 
 pg1 <- txtProgressBar(min=1, max=length(ita.ICUn.9), style=3)
 critic_to_death.9 <- c()
@@ -196,6 +202,7 @@ for (age in 1:length(ita.ICUn.9))  {
 }
 print( critic_to_death.9 )
 print( paste('Check:',sum(critic_to_death.9*ita.ICUn.9),'>',sum(ita.ICUd.9) ) )
+print(critic_to_death.9*ita.ICUn.9)
 ```
 
 
@@ -527,7 +534,7 @@ Population estimates [United Nations, Department of Economic and Social Affairs,
 
 ## APPENDIX - Estimate of error bars
 
-The first data set is 95% CI from Spanish Survey:
+The first data set is 95% CI from Spanish Survey. The errors from the survey are large, so we use simple error propagation to get the confidence intervals for the ascertainment rates
 
 ```{r}
 spanish.survey.perc.low.20  <- c(0.3, 1.4, 2.3, 3.1, 3.0, 3.5, 3.7, 2.9, 3.8, 
@@ -535,8 +542,8 @@ spanish.survey.perc.low.20  <- c(0.3, 1.4, 2.3, 3.1, 3.0, 3.5, 3.7, 2.9, 3.8,
 spanish.survey.perc.high.20  <- c(3.8, 3.6, 4.1, 4.9, 4.9, 5.7, 6.1, 4.9, 5.6, 
 							6.2, 6.7, 6.9, 7.2, 7.0, 7.4, 8.3, 7.7, 6.9, 8.2, 10.0)
 
-spanish.survey.posit.low.20  <- spanish.survey.count.20 / spanish.survey.perc.low.20
-spanish.survey.posit.high.20 <- spanish.survey.count.20 / spanish.survey.perc.high.20
+spanish.survey.posit.low.20  <- spanish.survey.count.20 * spanish.survey.perc.low.20 / 100.0
+spanish.survey.posit.high.20 <- spanish.survey.count.20 * spanish.survey.perc.high.20 / 100.0
 spanish.survey.posit.low.17  <- reduce.from.20.age.groups( spanish.survey.posit.low.20 )
 spanish.survey.posit.high.17 <- reduce.from.20.age.groups( spanish.survey.posit.high.20 )
 spanish.survey.perc.low.17  <- spanish.survey.posit.low.17 / spanish.survey.count.17
@@ -545,7 +552,78 @@ spanish.survey.perc.high.17 <- spanish.survey.posit.high.17 / spanish.survey.cou
 spanish.estimate.count.low.9  <- get.10y.from.5y( spanish.survey.perc.low.17*age.pyram.17)
 spanish.estimate.count.high.9 <- get.10y.from.5y( spanish.survey.perc.high.17*age.pyram.17)
 
-print(cases.total.9 / (spanish.estimate.count.low.9+cases.deaths.9))
-print(cases.total.9 / (spanish.estimate.count.high.9+cases.deaths.9))
+
+arate = data.frame( mean=c(cases.total.9 / (spanish.estimate.count.9+cases.deaths.9)*100),
+					low=c(cases.total.9 / ((spanish.estimate.count.9+cases.deaths.9)^2) * (spanish.estimate.count.9 - spanish.estimate.count.low.9))*100,
+					high=c(cases.total.9 / ((spanish.estimate.count.9+cases.deaths.9)^2) * (spanish.estimate.count.high.9 - spanish.estimate.count.9))*100)
+arate$low = arate$mean - arate$low
+arate$high = arate$mean + arate$high
+print(arate)
 ```
-a
+
+
+For all others we use bootstrapping.  The method we use is always the same.  Let focus for example on
+hospitalizations.  If we have N cases and n hospitalizations, we can represent them as a sequence of n ones and N-n zeros.  We then sample with replacement.  The probability of sampling k ones will then be given by $Bin(k,n/N)$.  The rest follows consequently.
+
+```{r}
+bootstrapErrors <- function( nvec, Nvec, pp )  {
+	data <- lapply( seq(1,9), function(x) {quantile( rbinom(100000, size=Nvec[x], prob=nvec[x]/Nvec[x]),
+											 probs=c(pp))*100/Nvec[x]} )
+	return(data)
+}
+
+limits <- data.frame( a2s.low=unlist(bootstrapErrors( cases.hosp.9-cases.ICUs.9, cases.total.9, 0.025 )),
+			a2s.high=unlist(bootstrapErrors( cases.hosp.9-cases.ICUs.9, cases.total.9, 0.975 )),
+			a2c.low=unlist(bootstrapErrors( cases.ICUs.9, cases.total.9, 0.025 )),
+			a2c.high=unlist(bootstrapErrors( cases.ICUs.9, cases.total.9, 0.975 )),
+			s2d.low=unlist(bootstrapErrors( cases.deaths.9 - ICUs.deaths.9, cases.hosp.9-cases.ICUs.9, 0.025)),
+			s2d.high=unlist(bootstrapErrors( cases.deaths.9 - ICUs.deaths.9, cases.hosp.9-cases.ICUs.9, 0.975)),
+			c2d.low=unlist(bootstrapErrors( ICUs.deaths.9, cases.ICUs.9, 0.025)),
+			c2d.high=unlist(bootstrapErrors( ICUs.deaths.9, cases.ICUs.9, 0.975))
+			)
+print(limits)
+```
+
+Finally, we get the confidence intervals for the death rate of severe cases
+
+```{r}
+datperc <- dat * 100
+errors <- data.frame( arate.delta.low=datperc$arate-arate$low, arate.delta.high=arate$high-datperc$arate,
+					  a2s.delta.low=datperc$a2s-limits$a2s.low, a2s.delta.high=limits$a2s.high-datperc$a2s,
+					  a2c.delta.low=datperc$a2c-limits$a2c.low, a2c.delta.high=limits$a2c.high-datperc$a2c,
+					  s2d.delta.low=datperc$s2d-limits$s2d.low, s2d.delta.high=limits$s2d.high-datperc$s2d,
+					  c2d.delta.low=datperc$c2d-limits$c2d.low, c2d.delta.high=limits$c2d.high-datperc$c2d
+					  )
+print(errors)
+```
+
+```{r}
+error.low <- sqrt((dat$s2d*errors$a2s.delta.low/100.0)^2+(dat$a2s*errors$s2d.delta.low/100.0)^2+
+	(dat$c2d*errors$a2c.delta.low/100.0)^2+(dat$a2c*errors$c2d.delta.low/100.0)^2)
+error.high <- sqrt((dat$s2d*errors$a2s.delta.high/100.0)^2+(dat$a2s*errors$s2d.delta.high/100.0)^2+
+	(dat$c2d*errors$a2c.delta.high/100.0)^2+(dat$a2c*errors$c2d.delta.high/100.0)^2)
+preIFR.mean <- dat$a2s*dat$s2d+dat$a2c*dat$c2d
+
+IFR.error.low <- sqrt((errors$arate.delta.low*preIFR.mean/100.0)^2 + (error.low*dat$arate/100.0)^2)
+IFR.error.high <- sqrt((errors$arate.delta.high*preIFR.mean/100.0)^2 + (error.high*dat$arate/100.0)^2)
+IFR.mean <- dat$arate*preIFR.mean
+IFR <- data.frame( IFR.low=(IFR.mean-IFR.error.low)*100, IFR.mean=IFR.mean*100,
+			IFR.high=(IFR.mean+IFR.error.high)*100,
+			IFR.log=log(IFR.mean))
+print(IFR)
+plot(IFR$IFR.log)
+IFRworst.mean <- dat$arate*(dat$a2s*dat$s2d+dat$a2c)
+print(IFRworst.mean*100)
+sum(IFR.mean*ita.age.pyram.9)
+sum(IFRworst.mean*ita.age.pyram.9)
+
+
+sympt_rate = c(0.00218634, 0.00214285, 0.030833, 0.0447099, 0.0675608, 0.15163, 0.347181, 0.387011, 0.9)
+sympt_to_severe  = c(3.8, 2.6, 2.8, 2.7, 5.4, 12.6, 19.7, 28.7, 27.3)/100.0
+sympt_to_critcal = c(0.01, 0.02, 0.08, 0.18, 0.34, 1.5, 5.4, 12.4, 19.3)/100.0
+severe_to_death  = c(3.8, 3.8, 3.8, 3.8, 5.0, 9.6, 20.0, 32.0, 53.5)/100.0
+critic_to_death  = c(0.0, 0.0, 8.9, 8.9, 13.0, 16.0, 31.9, 43.6, 64.0)/100.0
+
+IFRold <- sympt_rate*(sympt_to_severe*severe_to_death+sympt_to_critcal*critic_to_death)
+plot(log(IFRold))
+```

@@ -10,6 +10,7 @@ dat <- dat[dat$country_region == COUNTRY & dat$sub_region_1 == "" & dat$date >= 
 dat$day <- as.numeric(dat$date - as.Date(START_DATE))
 dat$week <- floor(dat$day / 7)
 dat <- summarise_all( group_by( dat, week ), mean )
+dat$day <- dat$week*7
 names <- colnames(dat)
 names <- strsplit(names, "_")
 names <- lapply(names, function(x) {return(x[1])})

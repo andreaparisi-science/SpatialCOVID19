@@ -46,6 +46,7 @@ runs:
 	touch ${OUTPUT}/EXEC
 
 fits:
+	cd Sources && \
 	\rm -f ./.tauleap && \
 	g++ -c SplineInterpolator.cpp && \
 	g++ -c Policy.cpp && \

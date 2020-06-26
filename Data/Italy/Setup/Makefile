@@ -1,8 +1,8 @@
-CORES:=12
+CORES:=28
 GRIDRES:=5
 COUNTRY:=Italy
 OUTDIR:=OutItaly
-PROCS:=012
+PROCS:=028
  
 map:
 	\rm -f lse-userdefined.*

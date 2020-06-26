@@ -87,6 +87,8 @@ std::vector<int> ages   = {0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 
 //std::vector<int> groups = {0, 0, 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16};
 std::vector<int> groups = {0, 0, 0,  1,  1,  2,  2,  3,  3,  4,  4, 5, 5, 6, 6, 7, 7, 8};
 
+std::array<int,2>  stayAtHomeLimit;
+
 // Fitting macros
 enum {PARAM_T0 = 1, PARAM_R0, PARAM_GAMMA, PARAM_TRACING, PARAM_TAU, PARAM_ZMAX, PARAM_OMEGA, PARAM_BETA};
 enum {DATA_ALL_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS, DATA_DUMMY, DATA_CUMUL_ALL_CASES, DATA_CUMUL_SYMPT, DATA_CUMUL_ASYMPT, DATA_CUMUL_DEATHS};
@@ -658,7 +660,11 @@ void	evalLocalParameters()  {
 #ifndef  MODEL_FAMILY
 		params.home     = FAMILY_TRANSMIT[0];
 #endif
-		params.work		= 1.0;
+		if (params.stayQuadratic == 1.0)  {
+			params.work		= 1.0-STAYATHOME_OTH[0];
+		} else {
+			params.work		= 1.0;
+		}
 		params.school	= 1.0-SCHOOL_CLOSURE[0];
 		params.other	= 1.0-SOCIALDIST_PROB[0];
 		params.mobility = 1.0-TRAVELREDUCTION[0];
@@ -673,7 +679,7 @@ void	evalLocalParameters()  {
 
 
 bool  firstinfect( double type, double case_lon, double case_lat )  {
-	int  constexpr  MINAGEGROUP = 7;
+	int  MINAGEGROUP;
 	RandomGenerator *gen = simStatus.getRandomGenerator();
 	int nAgeGroups = groups[ groups.size()-1 ] + 1;
 	std::vector<double>  counts;
@@ -681,6 +687,9 @@ bool  firstinfect( double type, double case_lon, double case_lat )  {
 	double lon = simStatus.getLongitude();
 	int pop, kk;
 	std::string prefix;
+
+	auto it = find_if( ages.begin(), ages.end(), [](int jj)  {return static_cast<int>(params.minAgeFirstcase+0.01) < jj;} );
+	MINAGEGROUP = groups[it - ages.begin()-1];
 
 	if (type == 0.0)  {
 		prefix = "Esp_";
@@ -761,22 +770,28 @@ void  accessCycle( int status )  {
 	static PolicyQueue queue;
 	static DataBuffer  firstInfBuffer;
 	double sum = 0;
+	std::vector<int>::iterator it;
 
 	switch (status)  {
 		case CYCLE_INIT:
 			firstInfBuffer.setBuffer( sizeof(int), 1 );
 			mainUniqueId = 10000000*simStatus.getProcessId();
-			simStatus.setDailyFractions( {8.0, 8.0+(45.0/7.0)} );
+			simStatus.setDailyFractions( {8.0, 8.0+(params.weeklyWorkHours/7.0)} );
 			getAgeGroups();
 			buildAgeAssignments();
 			//getSusceptibility();
 			initContactMatrix();
+			it = find_if( ages.begin(), ages.end(), [](int jj)  {return static_cast<int>(params.youngestLimit+0.01) < jj;} );
+			stayAtHomeLimit[0] = groups[it - ages.begin()-1];
+			it = find_if( ages.begin(), ages.end(), [](int jj)  {return static_cast<int>(params.eldestLimit+0.01) < jj;} );
+			stayAtHomeLimit[1] = groups[it - ages.begin()-1];
+std::cout << "STAY AT HOME " << stayAtHomeLimit[0] << " " << stayAtHomeLimit[1] << "\n";
 
 #ifdef  MODEL_FAMILY
 			params.home = 0;
 			params.R0  *= params.betaMul;
-			params.beta = params.R0 * params.gamma;
 #endif
+			params.beta = params.R0 * params.gamma;
 
 			updateContactMatrix();
 			initCountrySpecific();
@@ -977,9 +992,9 @@ void  stayAtHome()  {
 			Infos * data = reinterpret_cast<Infos*>(simStatus.getIndividualData( jj, kk ));
 			auto info = simStatus.getIndividualInfo( jj, kk );
 			if (info.placeOfContact == 0)  {
-				if (age <= 3)  {
+				if (age <= stayAtHomeLimit[0])  {
 					rate_athome = &STAYATHOME_SCH[0];
-				} else if (age >= 14)  {
+				} else if (age >= stayAtHomeLimit[1])  {
 					rate_athome = &STAYATHOME_AGE[0];
 				} else {
 					rate_athome = &STAYATHOME_OTH[0];
@@ -1537,10 +1552,10 @@ void  doFitting( int status, PolicyQueue &queue )  {
 						fitting.addParameter( "beta",		0.0,	PARTYPE_UNIFORM,	{std::log(1.0/4.0), std::log(15.0/4.0)} );
 						break;
 
-//					case  PARAM_R0:
-//						fitting.addParameter( "R0",			0.0,	PARTYPE_UNIFORM,	{std::log(1.0), std::log(7.0)} );
-//						break;
-//
+					case  PARAM_R0:
+						fitting.addParameter( "R0",			0.0,	PARTYPE_UNIFORM,	{std::log(1.0), std::log(7.0)} );
+						break;
+
 					case  PARAM_GAMMA:
 						fitting.addParameter( "1/gamma",	0.0,	PARTYPE_UNIFORM,	{0.2,  8.0} );
 						break;
@@ -1691,6 +1706,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			dailyCount[1].clear();
 			dailyCount[2].clear();
 			check_zero = 0;
+			params.R0 = 0.0;
 			trialParticle = fitting.start();
 			for (int jj = 0; jj < paramTable.size(); jj++)  {
 				switch (paramTable[jj])  {
@@ -1702,10 +1718,10 @@ void  doFitting( int status, PolicyQueue &queue )  {
 						params.beta    = std::exp( trialParticle.parameters[jj] );
 						break;
 
-//					case  PARAM_R0:
-//						params.R0      = std::exp( trialParticle.parameters[jj] );
-//						break;
-//
+					case  PARAM_R0:
+						params.R0      = std::exp( trialParticle.parameters[jj] );
+						break;
+
 					case  PARAM_GAMMA:
 						params.gamma   = 1.0/trialParticle.parameters[jj];
 						break;
@@ -1730,11 +1746,21 @@ void  doFitting( int status, PolicyQueue &queue )  {
 			params.t0   = std::floor( params.t0 );
 
 #ifdef  MODEL_FAMILY
-			params.beta *= params.betaMul;
-			params.R0    = params.beta/params.gamma;
-//			params.R0  *= params.betaMul;
-//			params.beta = params.R0 * params.gamma;
+			if (params.R0 == 0.0)  {
+				params.beta *= params.betaMul;
+				params.R0    = params.beta/params.gamma;
+			} else {
+				params.R0  *= params.betaMul;
+				params.beta = params.R0 * params.gamma;
+			}
+#else
+			if (params.R0 == 0.0)  {
+				params.R0    = params.beta/params.gamma;
+			} else {
+				params.beta = params.R0 * params.gamma;
+			}
 #endif
+
 			if (simStatus.getProcessId() == 0)  {
 				std::cout << "[" << simStatus.__fullProcessId << "] Params: ";
 				for (int jj = 0; jj < paramTable.size(); jj++)  {

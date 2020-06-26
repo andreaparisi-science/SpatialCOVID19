@@ -7,14 +7,23 @@ if (length(args) < 2)  {
 	quit('no')
 }
 
+previous <- 0
+ts.previous <- 0
 country <- args[1]
 startDate <- args[2]
+if (length(args) > 2)  {
+        previous <- as.numeric(args[3])
+		ts.previous <- previous
+}
+if (length(args) > 3)  {
+        ts.previous <- as.numeric(args[4])
+}
 
 dat <- read.table("Fits/output.dat", header=TRUE)
 #edit(dat)
 
 
-timer.max <- max(dat$Timer)
+timer.max <- max(dat$Timer) - previous
 #plot(dat[dat$Timer == timer.max,])
 dat <- dat[dat$Timer == timer.max,]
 plot(dat[3:nrow(dat),3:ncol(dat)])
@@ -43,7 +52,7 @@ for (jj in 1:ncol(dat))  {
 #ts <- read.table( paste("../../Data/", country, "/", country, "_timeseries.dat", sep='') )
 ts <- read.table( paste(country, "_timeseries.dat", sep=''), header=FALSE )
 #print(ts)
-directory <- paste("Fits/Generation-", timer.max, sep='')
+directory <- paste("Fits/Generation-", (timer.max-ts.previous), sep='')
 #fullname  <- paste("directory", "successfulRun-", sep='/')
 fullnames <- list.files( path=directory, pattern='successfulRun*', full.names=TRUE )
 kk <- 1
@@ -57,7 +66,8 @@ for (file in fullnames)  {
 	lower <- as.vector( c(0,(seps+1))[1:(length(seps))] )
 	for (jj in 1:length(upper))  {
 		section <- readData[lower[jj]:upper[jj],]
-		particles <- merge(particles, data.frame( t=section[,1], cases=section[,2] ), by = 't', all.y=TRUE)
+		#particles <- rbind(particles, data.frame( t=c(section[,1]), cases=c(section[,2]) ))
+		particles <- merge(particles, data.frame( t=c(section[,1]), cases=c(section[,2]) ), by = 't', all.y=TRUE)
 		kk <- kk+1
 	}
 }
@@ -92,3 +102,4 @@ lines(times, p.max, type='l', col=rgb(0.2,0.2,0.8))
 times <- seq(1,length(ts[,2])) + as.Date(startDate)
 lines(x=times, y=ts[,2], type='l', lty='dashed', col=rgb(1,0,0), lwd=1.6)
 legend((x.max-x.min)*0.02+x.min, y.max*0.95, legend=c("Data", "Median", "50% PI", "95% PI"), lty=1, lwd=c(1.6, 1.6, 6.4, 6.4), col=c(rgb(1,0,0), rgb(0.2,0.2,1), rgb(0.5,0.5,0.9), rgb(0.7,0.7,0.9)), cex=1.2)
+
