@@ -31,7 +31,9 @@ Sources/Default
 Output
 Counties
 Data/Canada
-Data/China
+Data/China/Gridded
+Data/China/Maps
+Data/China/Setup
 Data/Germany
 Data/Portugal
 Data/Spain
