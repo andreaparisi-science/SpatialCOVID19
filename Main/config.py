@@ -20,7 +20,7 @@ simList['Default'] = {
 
 	# Other model parameters
 	'rates': 'traditional', # Possible values: 'spanish', 'traditional'
-	'stayQuadratic': 'yes', # Whether work reduction means stopping people and reducing interaction for the remaining
+	'stayQuadratic': 'no', # Whether work reduction means stopping people and reducing interaction for the remaining
 	'youngestLimit': 19,    # All indivs with age <= this will be affected by young stay-at-home
 	'eldestLimit': 70,      # All indivs with age >= this will be affected by old stay-at-home
 	'minAgeFirstcase': 30,  # Minimal age to consider for initial cases

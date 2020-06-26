@@ -1914,7 +1914,7 @@ void  doFitting( int status, PolicyQueue &queue )  {
 
 		case CYCLE_LAST:
 //std::cout << "[" << simStatus.getGlobalProcessId() << "] - CYCLE_LAST start \n";
-			if (check_zero == 0)  chiSquared = 2*fitting.getError();
+			if (params.allowZeroFits == 0.0 && check_zero == 0)  chiSquared = 2*fitting.getError();
 
 			if (simStatus.getProcessId() == 0 && chiSquared < fitting.getError() && params.Restart == 1)  {
 				std::string  dirName = dirPrefix + std::to_string(fitting.getPopulationTimer());

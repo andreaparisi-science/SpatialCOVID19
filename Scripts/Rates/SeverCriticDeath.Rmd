@@ -611,7 +611,6 @@ IFR <- data.frame( IFR.low=(IFR.mean-IFR.error.low)*100, IFR.mean=IFR.mean*100,
 			IFR.high=(IFR.mean+IFR.error.high)*100,
 			IFR.log=log(IFR.mean))
 print(IFR)
-plot(IFR$IFR.log)
 IFRworst.mean <- dat$arate*(dat$a2s*dat$s2d+dat$a2c)
 print(IFRworst.mean*100)
 sum(IFR.mean*ita.age.pyram.9)
@@ -625,5 +624,9 @@ severe_to_death  = c(3.8, 3.8, 3.8, 3.8, 5.0, 9.6, 20.0, 32.0, 53.5)/100.0
 critic_to_death  = c(0.0, 0.0, 8.9, 8.9, 13.0, 16.0, 31.9, 43.6, 64.0)/100.0
 
 IFRold <- sympt_rate*(sympt_to_severe*severe_to_death+sympt_to_critcal*critic_to_death)
-plot(log(IFRold))
+min.y <- min(c(IFR$IFR.log,log(IFRold)))
+max.y <- max(c(IFR$IFR.log,log(IFRold)))
+plot( c(1,9), c(min.y, max.y), ty='n')
+lines(IFR$IFR.log, ty='p')
+lines(log(IFRold), ty='p', col="red")
 ```
