@@ -12,7 +12,7 @@ for key,value in simList['Default'].items():
 
 if len(sys.argv) == 2:
 	readinit = "\tReadinit		Read\n"
-	simlen   = "\tSimlength\t\t10\n"
+	simlen   = "\tSimlength\t\t5\n"
 else:
 	readinit = "\tReadinit		" + sys.argv[2] + "\n"
 	if sys.argv[2] == "Write":
@@ -28,7 +28,7 @@ nAgeGroups = 9
 outputLse  = "GENERAL:\n"
 outputLse += "\tPartfile\t\t\"../../../../Data/" + country + "/Setup/" + country + "_" + str(simList['Default']['gridres']) + "km-{:03d}.ppm\"\n".format(simList['Default']['cores'])
 #outputLse += "\tPartfile\t\t\"../Simple.txt\"\n"
-outputLse += "\tLocations\t\t50\n"
+outputLse += "\tLocations\t\t10\n"
 outputLse += readinit
 outputLse += "\tStorefile\t\t\"../storage\"\n"
 outputLse += "\tReduceFactor\t1\n"
@@ -168,6 +168,16 @@ else:
 
 
 outputParams = "PARAMETERS:\n"
+if simList['Default']['fitMethod'] == 'SMC':
+	outputParams += "\tfitMethod\t\tNone\t1\n"
+elif simList['Default']['fitMethod'] == 'BOLFI':
+	outputParams += "\tfitMethod\t\tNone\t2\n"
+else:
+	print( "Unknown fitting method [" + simList['Default']['fitMethod'] + "]" )
+	sys.exit(1)
+outputParams += "\tdegreeBOLFI\t\tNone\t"+str(simList['Default']['degreeBOLFI'])+"\n"
+outputParams += "\timportOmega\t\tNone\t"+str(simList['Default']['importOmega'])+"\n"
+
 outputParams += "\tdummy\t\tevalLocalParameters\t0\n"
 outputParams += "\tbetaMul\t\tNone\t"+str(simList['Default']['betaMul'])+"\n"
 outputParams += "\tfamilyAttackMul\t\tNone\t"+str(simList['Default']['familyAttackMul'])+"\n"
@@ -179,8 +189,9 @@ outputParams += "\tt0\t\tNone\t"+str(simList['Default']['t0'])+"\n"
 outputParams += "\teta\t\tNone\t1.0\n"
 outputParams += "\tR0\t\tNone\t" + str(simList['Default']['R0']) + "\n"
 outputParams += "\tsigma\tNone\t"+str(simList['Default']['sigma'])+"\n"
-outputParams += "\tomega\tNone\t"+str(simList['Default']['omega'])+"\n"
-outputParams += "\tsomega\tNone\t1\n"
+outputParams += "\tsomega\tNone\t"+str(simList['Default']['omega'])+"\n"
+outputParams += "\tpomega\tNone\t1\n"
+outputParams += "\tiomega\tNone\t1\n"
 outputParams += "\tgamma\tNone\t"+str(simList['Default']['gamma'])+"\n"
 outputParams += "\trho\tNone\t1.0/3.0\n"
 outputParams += "\tbeta\tNone\tR0*gamma\n"
@@ -222,6 +233,7 @@ elif simList['Default']['allowZeroFits'] == 'yes':
 else:
 	print( "Parameter [allowZeroFits] must take values 'yes' or 'not'." )
 	sys.exit(1)
+
 
 #for xx in range(0, 16):
 #	KK_home[xx][nAgeGroups-1]   = KK_home[xx][nAgeGroups-2]
@@ -283,31 +295,54 @@ for xx in range(0, nAgeGroups):
 #		outputParams += "\tKK_other_" + str(xx) + "_" + str(yy) + "\tNone\t" + str(KK_other[xx][yy]) + "\n"
 
 for xx in range(0, nAgeGroups):
-	outputParams += "\tzz_" + str(xx) + "\tNone\t"+str(sympt_rate[xx])+"\n"
+	outputParams += "\tsympt_" + str(xx) + "\tNone\t"+str(sympt_rate[xx])+"\n"
 	outputParams += "\tsy2ho_" + str(xx) + "\tNone\t"+str(sympt_to_severe[xx])+"\n"
 	outputParams += "\tsy2ic_" + str(xx) + "\tNone\t"+str(sympt_to_critcal[xx])+"\n"
 	outputParams += "\tho2de_" + str(xx) + "\tNone\t"+str(severe_to_death[xx])+"\n"
 	outputParams += "\tcr2de_" + str(xx) + "\tNone\t"+str(critic_to_death[xx])+"\n"
 
+
+outputParams += "\tzz_0\tNone\t" + str(simList['Default']['susceptibility'][0])+"\n"   # 0-9
+outputParams += "\tzz_1\tNone\t" + str(simList['Default']['susceptibility'][1])+"\n"   # 10-19
+outputParams += "\tzz_2\tNone\t" + str(simList['Default']['susceptibility'][2])+"\n"   # 20-39
+outputParams += "\tzz_3\tNone\t" + str(simList['Default']['susceptibility'][3])+"\n"
+outputParams += "\tzz_4\tNone\t" + str(simList['Default']['susceptibility'][4])+"\n"   # 40-69
+outputParams += "\tzz_5\tNone\t" + str(simList['Default']['susceptibility'][5])+"\n"
+outputParams += "\tzz_6\tNone\t" + str(simList['Default']['susceptibility'][6])+"\n"
+outputParams += "\tzz_7\tNone\t" + str(simList['Default']['susceptibility'][7])+"\n"   # 70-80+
+outputParams += "\tzz_8\tNone\t" + str(simList['Default']['susceptibility'][8])+"\n"
+outputParams += "\tzz_norm\tNone\t9.0/(zz_0+zz_1+zz_2+zz_3+zz_4+zz_5+zz_6+zz_7+zz_8)\n"
+
+outputParams += "\ttr_0\tNone\t" + str(simList['Default']['transmissibility'][0])+"\n"   # 0-9
+outputParams += "\ttr_1\tNone\t" + str(simList['Default']['transmissibility'][1])+"\n"   # 10-19
+outputParams += "\ttr_2\tNone\t" + str(simList['Default']['transmissibility'][2])+"\n"   # 20-39
+outputParams += "\ttr_3\tNone\t" + str(simList['Default']['transmissibility'][3])+"\n"
+outputParams += "\ttr_4\tNone\t" + str(simList['Default']['transmissibility'][4])+"\n"   # 40-69
+outputParams += "\ttr_5\tNone\t" + str(simList['Default']['transmissibility'][5])+"\n"
+outputParams += "\ttr_6\tNone\t" + str(simList['Default']['transmissibility'][6])+"\n"
+outputParams += "\ttr_7\tNone\t" + str(simList['Default']['transmissibility'][7])+"\n"   # 70-80+
+outputParams += "\ttr_8\tNone\t" + str(simList['Default']['transmissibility'][8])+"\n"
+outputParams += "\ttr_norm\tNone\t9.0/(tr_0+tr_1+tr_2+tr_3+tr_4+tr_5+tr_6+tr_7+tr_8)\n"
+
 outputTrans  = "TRANSITIONS:\n"
 if simList['Default']['model'] == 'seir':
 	for xx in range(0, nAgeGroups):
 		for yy in range(0, nAgeGroups):
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\t(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\t(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
 #			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_"+str(xx)+"_"+str(yy)
 #			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 #			outputTrans += "\n"
 
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\t(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\t(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
 #			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
 #			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
@@ -315,8 +350,8 @@ if simList['Default']['model'] == 'seir':
 
 	for xx in range(0, nAgeGroups):
 		outputTrans += "\tEsp_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(Next)\tNone\tNone\t$Esp_"+str(xx)+"*sigma\n"
-		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tInf_" + str(xx) + "(First)\tmoveToInfect\tNone\t$Esp_"+str(xx)+"*sigma*zz_"+str(xx)+"\n"
-		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tAsy_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*(1-zz_"+str(xx)+")\n"
+		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tInf_" + str(xx) + "(First)\tmoveToInfect\tNone\t$Esp_"+str(xx)+"*sigma*sympt_"+str(xx)+"\n"
+		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tAsy_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*(1-sympt_"+str(xx)+")\n"
 		outputTrans += "\tInf_" + str(xx) + "\tNone\tInf_" + str(xx) + "(Next)\tNone\tNone\t$Inf_"+str(xx)+"*gamma\n"
 		outputTrans += "\tAsy_" + str(xx) + "\tNone\tAsy_" + str(xx) + "(Next)\tNone\tNone\t$Asy_"+str(xx)+"*gamma\n"
 		outputTrans += "\tInf_" + str(xx) + "(Last)\tNone\tRec_" + str(xx) + "\tmoveToCase\tCase\t$Inf_"+str(xx)+"*gamma\n"
@@ -325,31 +360,32 @@ if simList['Default']['model'] == 'seir':
 elif simList['Default']['model'] == 'consensus':
 	for xx in range(0, nAgeGroups):
 		for yy in range(0, nAgeGroups):
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\t(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\t(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
 #			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_"+str(xx)+"_"+str(yy)
 #			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 #			outputTrans += "\n"
 
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\t(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\t(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
 #			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
 #			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Wai_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 #			outputTrans += "\n"
 
 	for xx in range(0, nAgeGroups):
-		outputTrans += "\tSus_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(First)\timportedCase\tNone\tsomega\n"
+		#outputTrans += "\tSus_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(First)\timportedBase\tNone\tsomega*pomega*iomega\n"
+		outputTrans += "\tSus_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(First)\timportedBase\tNone\tsomega*pomega*zz_"+str(xx)+"*zz_norm\n"
 		outputTrans += "\tEsp_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(Next)\tNone\tNone\t$Esp_"+str(xx)+"*sigma\n"
-		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tInf_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*zz_"+str(xx)+"\n"
-		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tAsy_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*(1-zz_"+str(xx)+")\n"
+		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tInf_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*sympt_"+str(xx)+"\n"
+		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tAsy_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*(1-sympt_"+str(xx)+")\n"
 		outputTrans += "\tInf_" + str(xx) + "\tNone\tInf_" + str(xx) + "(Next)\tNone\tNone\t$Inf_"+str(xx)+"*gamma\n"
 		outputTrans += "\tAsy_" + str(xx) + "\tNone\tAsy_" + str(xx) + "(Next)\tNone\tNone\t$Asy_"+str(xx)+"*gamma\n"
 		outputTrans += "\tInf_" + str(xx) + "(Last)\tNone\tWai_" + str(xx) + "\tmoveToCase\tNone\t$Inf_"+str(xx)+"*gamma*(sy2ho_"+str(xx)+"+sy2ic_"+str(xx)+")\n"
@@ -366,33 +402,33 @@ elif simList['Default']['model'] == 'consensus':
 else:
 	for xx in range(0, nAgeGroups):
 		for yy in range(0, nAgeGroups):
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\t(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\t(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectother\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
-			outputTrans += "\n"
+			#outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_"+str(xx)+"_"+str(yy)
+			#outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			#outputTrans += "\n"
 
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\t(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\t(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tEsp_" + str(xx) + "(First)\tinfectatwork\tNone\tzz_"+str(xx)+"*(beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
+			outputTrans += "*tr_"+str(yy)+"*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
 			outputTrans += "\n"
-			outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
-			outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
-			outputTrans += "\n"
+			#outputTrans += "\tSus_" + str(xx) + "\tInf_" + str(yy) + "\tSus_" + str(xx) + "(First)\tinfectnone\tNone\t(1-beta/eigen)*KK_work_"+str(xx)+"_"+str(yy)
+			#outputTrans += "*@Default/(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Hos_"+str(yy)+"+@Icu_"+str(yy)+"+@Hom_"+str(yy)+"+@Ded_"+str(yy)+"+@Asyrec_"+str(yy)+"+@Rec_"+str(yy)+")"
+			#outputTrans += "\n"
 			#outputTrans += "\tSus_" + str(xx) + "\tAsy_" + str(yy) + "\tSus_" + str(xx) + "\tinfect\tNone\t(1-beta/eigen)*KK_"+str(xx)+"_"+str(yy)
 			#outputTrans += "*@Default/(eigen*(@Sus_"+str(yy)+"+@Esp_"+str(yy)+"+@Inf_"+str(yy)+"+@Asy_"+str(yy)+"+@Rec_"+str(yy)+"))"
 			#outputTrans += "\n"
 
 	for xx in range(0, nAgeGroups):
 		outputTrans += "\tEsp_" + str(xx) + "\tNone\tEsp_" + str(xx) + "(Next)\tNone\tNone\t$Esp_"+str(xx)+"*sigma\n"
-		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tInf_" + str(xx) + "(First)\tmoveToInfect\tNone\t$Esp_"+str(xx)+"*sigma*zz_"+str(xx)+"\n"
-		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tAsy_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*(1-zz_"+str(xx)+")\n"
+		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tInf_" + str(xx) + "(First)\tmoveToInfect\tNone\t$Esp_"+str(xx)+"*sigma*sympt_"+str(xx)+"\n"
+		outputTrans += "\tEsp_" + str(xx) + "(Last)\tNone\tAsy_" + str(xx) + "(First)\tNone\tNone\t$Esp_"+str(xx)+"*sigma*(1-sympt_"+str(xx)+")\n"
 		outputTrans += "\tInf_" + str(xx) + "\tNone\tInf_" + str(xx) + "(Next)\tNone\tNone\t$Inf_"+str(xx)+"*gamma\n"
 		outputTrans += "\tAsy_" + str(xx) + "\tNone\tAsy_" + str(xx) + "(Next)\tNone\tNone\t$Asy_"+str(xx)+"*gamma\n"
 		outputTrans += "\tInf_" + str(xx) + "(Last)\tNone\tHos_" + str(xx) + "\tmoveToHos\tCaseHos\t$Inf_"+str(xx)+"*gamma*sy2ho_"+str(xx)+"\n"
