@@ -1,6 +1,6 @@
 CORES=12
 GRIDRES=5
-COUNTRY=Kenya
+COUNTRY=Italy
 
 PROCS=$(printf "%03d" ${CORES})
 
