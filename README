@@ -1,9 +1,3 @@
-IMPORTANT INFORMATION
-
-This tool uses a development version of the DeryaSE Engine. You are strongly adviced NOT to use it for other porpuses other than running this tool, as it has not been tested for wider use.
-For the same reason, you should use this tool under Linux, as it will not compile properly on other operating systems.
-
-
 REQUIREMENTS:
 
 - A complete gnu C++ compiler
