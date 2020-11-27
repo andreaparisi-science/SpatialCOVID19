@@ -3,8 +3,8 @@
 #include <fstream>
 #include <cmath>
 
-#include "SimplexSearch.cpp"
-#include "SplineInterpolator.cpp"
+#include "SimplexSearch.h"
+#include "SplineInterpolator.h"
 
 
 void assignPreferredLocations();
@@ -17,7 +17,8 @@ constexpr double minLim = 90.0;
 constexpr double delta  = 0.25;
 constexpr double TIMEFRAME = 1.0;
 constexpr double REL_ERROR = 1.e-2;
-
+const std::string commutingFile = "Data/ItalyCommuting.csv";
+const std::string country = "Italy";
 
 class MobData {
 public:
@@ -41,7 +42,7 @@ public:
 void  loadAscFile(const std::string&, std::vector< std::vector<MobData> > &);
 void	  loadStoreFile(const std::string&, std::vector< std::vector<MobData> > &);
 void  loadCommutingData(const std::string&, std::vector<GroupData> &, int);
-double  evaluateModel(double factor);
+double  evaluateModel(double factor, int method);
 std::map<int, int>  buildGroups( const std::string );
 
 std::vector< std::vector<MobData> >  popMap;
@@ -498,41 +499,6 @@ void  constrainParams(std::vector<double> &vec)  {
 
 
 
-void  analyzeTripDistribution()  {
-	ifstream  handler("TripDistribution.tsv");
-	std::vector<double> xx, yy;
-	double fval, ymax, ymin, alpha, total, weightot;
-	while (true)  {
-		handler >> fval;
-		if (handler.eof())  break;
-		xx.push_back(fval);
-		handler >> fval;
-		yy.push_back(fval);
-	}
-
-	SplineInterpolator interp = SplineInterpolator(xx, yy, SPLINE_METHOD_NATURAL );
-	static int MAXLEN = 208;
-	xx.resize(MAXLEN);
-	yy.clear();
-	for (int kk = 0; kk < MAXLEN; kk++)  {
-		xx[kk] = kk+1;
-	}
-	yy = interp.interpolate(xx);
-	// Rescaling to zero
-	ymax = yy[0];
-	ymin = yy[MAXLEN-1];
-	alpha = ymax/(ymax-ymin);
-	for (int kk = 0; kk < MAXLEN; kk++)  {
-		yy[kk] = alpha*(yy[kk]-ymin);
-	}
-	// Weighted and nonweighted sum
-	for (int kk = 0; kk < MAXLEN; kk++)  {
-		total    += yy[kk];
-		weightot += yy[kk]/(kk+1);
-	}
-	std::cout << "TRIP TOTALS: " << total << " " << weightot << "\n";
-}
-
 
 
 
@@ -556,8 +522,7 @@ void  accessCycle( int status )  {
 				if (jj > 1)  strgroups += ",";
 				strgroups += std::to_string(jj);
 			}
-			//analyzeTripDistribution();
-			loadAscFile( std::string("../Italy_") + std::to_string(GRIDRES) + "km_ids.asc", popMap);
+			loadAscFile( std::string("../") + country + "_" + std::to_string(GRIDRES) + "km_ids.asc", popMap);
 			loadStoreFile("storage", popMap);
 			groups = buildGroups(strgroups);
 
@@ -572,7 +537,7 @@ void  accessCycle( int status )  {
 				region[ii].commutingModel.resize(nGroups+1, 0);
 			}
 
-			loadCommutingData("Data/ItalyCommuting.csv", region, nGroups);
+			loadCommutingData( commutingFile, region, nGroups);
 			bufferData.setBuffer( 2*sizeof(double), 2 );
 			break;
 

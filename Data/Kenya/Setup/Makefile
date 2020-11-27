@@ -1,8 +1,8 @@
-CORES:=12
+CORES:=28
 GRIDRES:=5
 COUNTRY:=Kenya
 OUTDIR:=OutKenya
-PROCS:=012
+PROCS:=028
  
 map:
 	\rm -f lse-userdefined.*
@@ -12,7 +12,7 @@ map:
 	./runderyaSE 1
 
 part:
-	deryaSE --partitionmap --filein ${COUNTRY}_${GRIDRES}km.asc --patches ${PROCS} --connect --seed 3
+	deryaSE --partitionmap --filein ${COUNTRY}_${GRIDRES}km.asc --patches ${PROCS} --connect --seed 1
 	mv wmap-final.ppm ${COUNTRY}_${GRIDRES}km-${PROCS}.ppm
 	\rm wmap-*
 

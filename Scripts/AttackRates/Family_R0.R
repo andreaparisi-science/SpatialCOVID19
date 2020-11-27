@@ -1,13 +1,17 @@
 #Country = "Kenya"
-#Country = "China"
-Country = "Italy"
+Country = "China"
+#Country = "Italy"
+#Country = "Spain"
+#Country = "UK"
 #HHsize <- 3.9   # Kenya
-#HHsize <- 2.85  # Wuhan
-HHsize <- 2.31  # Italy
+HHsize <- 2.85  # Wuhan
+#HHsize <- 2.31  # Italy
+#HHsize <- 2.5 # Spain
+#HHsize <- 2.4 # UK
 R0 <- 3.0
 #expectedVal <- 0.158
-#expectedVal <- 0.30
-expectedVal <- -1
+#expectedVal <- -1
+expectedVal <- 0.30
 
 CONTACT.SIZE = 9
 
@@ -22,6 +26,12 @@ if (CONTACT.SIZE == 16)  {
 	KK = KKwork + KKschool + KKother
 	KKhome = rbind(KKhome, KKhome[16,] )
 	KKhome = cbind(KKhome, KKhome[,16] )
+	KKwork = rbind(KKwork, KKwork[16,] )
+	KKwork = cbind(KKwork, KKwork[,16] )
+	KKschool = rbind(KKschool, KKschool[16,] )
+	KKschool = cbind(KKschool, KKschool[,16] )
+	KKother = rbind(KKother, KKother[16,] )
+	KKother = cbind(KKother, KKother[,16] )
 	KK = rbind(KK, KK[16,])
 	KK = cbind(KK, KK[,16])
 

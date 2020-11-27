@@ -3,16 +3,10 @@ GRIDRES:=20
 COUNTRY:=Test
 
 all:
-	make macroareas
 	make counties
 
-macroareas:
-	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield Name --sortfield id --shapeonly Shapefiles/MacroAreas.shp
-	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_maonly.asc
-	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_maonly.ppm
-
 counties:
-	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield COUNTY --sortfield OBJECTID --export Shapefiles/County.shp
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield DEN_PROV --sortfield COD_PROV --export Shapefiles/Limiti2011_g/Prov2011_g/Prov2011_WGS.shp
 	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_ids.asc
 	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_ids.ppm
 	mkdir -p Counties

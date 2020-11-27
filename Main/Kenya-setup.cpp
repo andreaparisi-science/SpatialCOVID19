@@ -3,19 +3,19 @@
 
 // Relevant files loaded at execution time
 static  std::string  contactMatrixFile = "../../../../Data/Kenya/Contacts/KenyaContactMatrix";
-static  std::string  ageGroupEsriFile  = "../../../../Data/Kenya/Setup/Kenya_%dkm_%d.dat";
+static  std::string  ageGroupEsriFile  = "../../../../Data/Kenya/Setup/Kenya_%dkm_%d.asc";
 static  std::string  agePyramidFile    = "../../../../Data/Kenya/Setup/Kenya_%dkm_g%02u_stats.dat";
 static  std::string  identifiersFile   = "../../../../Data/Kenya/Maps/Kenya_%dkm_ids.asc";
-static  std::string  timeseriesFile    = "../../../../Data/Kenya/Private/Kenya_timeseries.dat";
+static  std::string  timeseriesFile    = "../../../../Data/Kenya/Kenya_timeseries.dat";
 
 static  std::string  importedCasesFile = "../../../../Data/Kenya/Private/imported_byId_byAge.dat";
 
 enum  {EXTENT_NATIONAL = 1, EXTENT_COUNTY};
-Intervention  travelBan;
+Intervention  travelBan, travelBan2, travelBan3;
 std::vector<Intervention>	interventions = {
-	Intervention( POLICY_REDUCE_INFLIGHT, EXTENT_NATIONAL,   0,  0, 1.00 ),
-	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL,   0,  0, 0.00 )
-/*	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL,   0,  0, 1.00 ),
+//	Intervention( POLICY_REDUCE_INFLIGHT, EXTENT_NATIONAL,   0,  0, 1.00 ),
+//	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL,   0,  0, 0.00 )
+	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL,   0,  0, 1.00 ),
 	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL,   1000000,  10, 0.00 ),
 	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_NATIONAL,   2, 14, 0.30 ), // 15th first measures (check GOOGLE)
 	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_NATIONAL,  16, 21, 0.45 ), // 15th first measures (check GOOGLE)
@@ -37,8 +37,14 @@ std::vector<Intervention>	interventions = {
 	Intervention( POLICY_TRAVELREDUCTION, EXTENT_NATIONAL,   2, 14, (0.27-0.14)/(1-0.14) ),
 	Intervention( POLICY_TRAVELREDUCTION, EXTENT_NATIONAL,  16,  7, (0.35-0.19)/(1-0.19) ),
 	Intervention( POLICY_TRAVELREDUCTION, EXTENT_NATIONAL,  23, 14, (0.42-0.19)/(1-0.19) ),
-	Intervention( POLICY_TRAVELREDUCTION, EXTENT_NATIONAL,  44, 21, (0.33-0.13)/(1-0.13) )
-*/};
+	Intervention( POLICY_TRAVELREDUCTION, EXTENT_NATIONAL,  44, 21, (0.33-0.13)/(1-0.13) ),
+
+		travelBan2 = 
+	Intervention( POLICY_TRAVELRED_ADMIN, EXTENT_COUNTY,    86,  0, 0.90 ),
+
+		travelBan3 = 
+	Intervention( POLICY_TRAVELRED_ADMIN, EXTENT_COUNTY,   116,  0, 0.00 ),
+};
 
 //	POLICY_TRACING_PROB = 0,		// Contact tracing probability
 //	POLICY_SOCIALDIST_PROB, 		// Generalized reduction of social interactions
@@ -54,7 +60,7 @@ std::vector<Intervention>	interventions = {
 
 
 std::vector< std::vector<double> >  firstInfections = {
-	{0.0, 0.0, -1.0, 36.8172, -1.2864}//,  // First absolute
+//	{0.0, 0.0, -1.0, 36.8172, -1.2864}//,  // First absolute
 /*	{3.0, 3.0, 36.8172, -1.2864},  // 5th of March (x3)
 	{3.0, 3.0, 36.8172, -1.2864},  // 5th of March
 	{3.0, 3.0, 36.8172, -1.2864},  // 5th of March
@@ -73,10 +79,13 @@ std::vector< std::vector<double> >  firstInfections = {
 
 
 std::vector< std::vector<int> >    idsMap;
+std::vector< std::vector<double> > ageIdsPop;
 int   maxId = 0;
 void  loadIdentifiers( const std::string datafile )  {
 	char ch_filename[256];
 	std::string  filename;
+	int ids, nAgeGroups = groups[ groups.size()-1 ] + 1;
+
 	sprintf( ch_filename, datafile.c_str(), GRIDRES );
 	filename = std::string( ch_filename );
 	EsriReader  reader(filename);
@@ -91,6 +100,22 @@ void  loadIdentifiers( const std::string datafile )  {
 			}
 		}
 	}
+
+	ageIdsPop.resize( nAgeGroups, std::vector<double>(maxId+1, 0.0) );
+	for (int ii = 0; ii < data.ncols; ii++)  {
+		for (int jj = 0; jj < data.nrows; jj++)  {
+			ids = idsMap[ii][jj];
+			for (int age = 0; age < nAgeGroups; age++)  {
+				ageIdsPop[ age ][ ids ] += baseMap[ age ][ii][jj];
+			}
+		}
+	}
+
+//	for (int age = 0; age < nAgeGroups; age++)  {
+//		for (int ids = 0; ids < maxId+1; ids++)  {
+//			std:cout << age << "," << ids << " " << ageIdsPop[ age ][ ids ] << "\n";
+//		}
+//	}
 }
 
 
@@ -108,7 +133,7 @@ int  evalDaily()  {
 		}
 	}
 	if (totalCases > 0)  {
-		params.tracing = 50.0/totalCases;
+		params.tracing = 200.0/totalCases;
 		if (params.tracing > 1)  params.tracing = 1.0;
 	}
 	return -1;
@@ -153,7 +178,7 @@ void  loadImportProbs()  {
 		instream >> prob;
 
 //std::cout << "***** " << maxId << " " << ids << " "  << age << "\n" << std::flush;
-		importProbs[ids][age] = prob;
+		importProbs[ids][age] = prob / ageIdsPop[age][ids];
 //		instream.peek();
 	}
 }
@@ -185,12 +210,17 @@ void  initCountrySpecific()  {
 
 
 
-std::vector<int>  lockdownCountyList = {
-//:	41, 47, 44, 46
-}; // 41-Nairobi, 47-Mombasa, 44-Kilifi, 46-Kwale
+std::vector< std::vector<int> >  lockdownCountyList = {
+	{41, 47, 44, 46},  // 41-Nairobi, 47-Mombasa, 44-Kilifi, 46-Kwale
+	{41, 47,  3}       // 41-Nairobi, 47-Mombasa,  3-Mandera
+}; 
 bool  checkLockdown(int x0, int y0)  {
-	if (interventions.size() > 1 && simStatus.getTime() > travelBan.getActivationTime())  {
-		if (std::find(lockdownCountyList.begin(), lockdownCountyList.end(), idsMap[x0][y0]) != lockdownCountyList.end())  {
+	if (interventions.size() > 1 && simStatus.getTime() >= travelBan.getActivationTime() && simStatus.getTime() < travelBan2.getActivationTime())  {
+		if (std::find(lockdownCountyList[0].begin(), lockdownCountyList[0].end(), idsMap[x0][y0]) != lockdownCountyList[0].end())  {
+			return true;
+		}
+	} else 	if (interventions.size() > 1 && simStatus.getTime() >= travelBan2.getActivationTime() && simStatus.getTime() < travelBan3.getActivationTime())  {
+		if (std::find(lockdownCountyList[1].begin(), lockdownCountyList[1].end(), idsMap[x0][y0]) != lockdownCountyList[1].end())  {
 			return true;
 		}
 	}
@@ -202,6 +232,7 @@ bool  checkLockdown(int x0, int y0)  {
 //enum {PARAM_T0 = 0x01, PARAM_R0 = 0x02, PARAM_GAMMA = 0x04, PARAM_TRACING = 0x08};
 //enum {DATA_CASES, DATA_SYMPT, DATA_ASYMPT, DATA_DEATHS};
 std::vector< int >  inputTable = {DATA_CUMUL_ALL_CASES, DATA_CUMUL_DEATHS};
-std::vector< int >  paramTable = {PARAM_T0, PARAM_BETA, PARAM_OMEGA};
+std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_GAMMA, PARAM_OMEGA};
 std::vector< int >  distsTable = {DATA_DEATHS};
+std::vector< int >  printTable = {DATA_DEATHS};
 

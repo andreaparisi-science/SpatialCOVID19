@@ -1,4 +1,4 @@
-OUTPUT  := ../Output/${OUTDIR}
+OUTPUT  := ../Output
 CWD := $(shell pwd)
 OPTS = $(eval OPTS := $$(shell bash testTauleap.sh))$(OPTS)
 

@@ -1,4 +1,5 @@
 #include <fstream>
+#include <cassert>
 #include "GeoTiffReader.h"
 
 #ifdef  REDUCE_FACTOR
@@ -58,6 +59,7 @@ void  transformAgeGroupData( std::vector<int> &groups, bool outputMaps )  {
 	int delta, xsize, ysize;
 	std::vector< std::vector< std::vector<unsigned int> > >  agegrMap;
 	std::vector< std::vector<unsigned int> >  baseMap, tmpMap;
+	GeoTiffReader *reader;
 
 	RandomGenerator *deryaRNG = simStatus.getRandomGenerator();
 
@@ -66,14 +68,17 @@ void  transformAgeGroupData( std::vector<int> &groups, bool outputMaps )  {
 			sprintf( ch_filename, ("../Gridded/" + std::string(SHORTCOUNTRY) + "_%c_%d_"+ YEAR +".tif").c_str(), sex[kk], ages[qq] );
 			filename = std::string( ch_filename );
 			std::cout << "Handling file [" << filename << "]\n" << std::flush;
-			GeoTiffReader reader( filename );
-			data = reader.readHeader();
+			reader = new GeoTiffReader( filename );
+			data = reader->readHeader();
+
+			tmpMap.clear();
+			tmpMap.resize( data.ncols );
+			for (int ww = 0; ww < data.ncols; ww++)  {
+				tmpMap[ww].resize( data.nrows, 0 );
+			}
+
 			if (qq == 0 && kk == 0)  {
 				std::cout << "Map dimensions are " << data.ncols << " x " << data.nrows << " grid elements.\n";
-				tmpMap.resize( data.ncols );
-				for (int qq = 0; qq < data.ncols; qq++)  {
-					tmpMap[qq].resize( data.nrows, 0 );
-				}
 
 				delta = 10*GRIDRES;
 				xsize = data.ncols / delta + (data.ncols % delta == 0 ? 0 : 1);
@@ -102,13 +107,15 @@ void  transformAgeGroupData( std::vector<int> &groups, bool outputMaps )  {
 				}
 			}
 
-			reader.readFile( 1.0, tmpMap );
+			reader->readFile( 1.0, tmpMap );
 
 			aa = groups[qq];
 			for (int ii = 0; ii < data.ncols; ii++)  {
 				for (int jj = 0; jj < data.nrows; jj++)  {
 					int xx = ii/delta;
 					int yy = jj/delta;
+					assert( xx >= 0 && xx < xsize );
+					assert( yy >= 0 && yy < ysize );
 					tmpMap[ii][jj] = deryaRNG->binomial( tmpMap[ii][jj], REDUCE_FACTOR );
 					baseMap[xx][yy] += tmpMap[ii][jj];
 					agegrMap[aa][xx][yy] += tmpMap[ii][jj];
@@ -116,8 +123,30 @@ void  transformAgeGroupData( std::vector<int> &groups, bool outputMaps )  {
 //std::cout << ii << " " << jj << " " << baseMap[aa][ii][jj] << " " << tmpMap[ii][jj] << " " << REDUCE_FACTOR << "\n";
 				}
 			}
+			delete reader;
 
 		}
+	}
+
+	{
+		int sz = 0;
+		for (int yy = ysize-1; yy >= 0; yy--)  {
+			for (int xx = 0; xx < xsize; xx++)  {
+				sz += baseMap[xx][yy];
+			}
+		}
+		int sz2 = 0;
+		int sz3 = 0;
+		for (int aa = 0; aa < 1; aa++)  {
+			sz2 += ageSizes[aa];
+			for (int yy = ysize-1; yy >= 0; yy--)  {
+				for (int xx = 0; xx < xsize; xx++)  {
+					sz3 += agegrMap[aa][xx][yy];
+				}
+			}
+		}
+
+		std::cout << "CHECK : " << sz << " " << sz2 << " " << sz3 << " " << "Extrastep: " << extrastep << "\n" << std::flush;
 	}
 
 	// If new rows/cols are needed, shift everything
@@ -149,7 +178,7 @@ void  transformAgeGroupData( std::vector<int> &groups, bool outputMaps )  {
 		for (int yy = ysize-1; yy >= 0; yy--)  {
 			for (int xx = 0; xx < xsize; xx++)  {
 				if (xx > 0)  handler << " ";
-				handler << baseMap[xx][yy];
+				handler << static_cast<int>( 0.001 + baseMap[xx][yy] );
 			}
 			handler << "\n";
 		}
@@ -161,11 +190,11 @@ void  transformAgeGroupData( std::vector<int> &groups, bool outputMaps )  {
 			for (int yy = ysize-1; yy >= 0; yy--)  {
 				for (int xx = 0; xx < xsize; xx++)  {
 					if (xx > 0)  handler << " ";
-					if (baseMap[xx][yy] > 0)  {
-						handler << agegrMap[aa][xx][yy];
-					} else {
-						handler << 0;
-					}
+//					if (baseMap[xx][yy] > 0)  {
+						handler << static_cast<int>( 0.001 + agegrMap[aa][xx][yy] );
+//					} else {
+//						handler << 0;
+//					}
 				}
 				handler << "\n";
 			}
@@ -184,11 +213,11 @@ void  transformAgeGroupData( std::vector<int> &groups, bool outputMaps )  {
 			for (int yy = ysize-1; yy >= 0; yy--)  {
 				for (int xx = 0; xx < xsize; xx++)  {
 					if (xx > 0)  handler << " ";
-					if (baseMap[xx][yy] > 0)  {
-						handler << agegrMap[aa][xx][yy];
-					} else {
-						handler << 0;
-					}
+//					if (baseMap[xx][yy] > 0)  {
+						handler << static_cast<int>( 0.001 + agegrMap[aa][xx][yy] );
+//					} else {
+//						handler << 0;
+//					}
 				}
 				handler << "\n";
 			}

@@ -7,11 +7,11 @@ map:
 	\rm -f lse-userdefined.*
 	\ln -s ../../../Main/Setup/lse-userdefined.cpp .
 	\ln -s ../../../Main/Setup/lse-userdefined.h .
-	deryaSE --define GRIDRES=${GRIDRES} --define COUNTRY=\"${COUNTRY}\" --define SHORTCOUNTRY=\"ken\" --define YEAR=\"2018\" --define REDUCE_FACTOR=0.1 CoV.lse
+	deryaSE --define GRIDRES=${GRIDRES} --define COUNTRY=\"${COUNTRY}\" --define SHORTCOUNTRY=\"ita\" --define YEAR=\"2020\" --define REDUCE_FACTOR=0.1 CoV.lse
 	./runderyaSE 1
 
 part:
-	deryaSE --partitionmap --filein ${COUNTRY}_${GRIDRES}km.asc --patches ${PROCS} --connect --seed 5
+	deryaSE --partitionmap --filein ${COUNTRY}_${GRIDRES}km.asc --patches ${PROCS} --connect --seed 7
 	mv wmap-final.ppm ${COUNTRY}_${GRIDRES}km-${PROCS}.ppm
 	\rm wmap-*
 

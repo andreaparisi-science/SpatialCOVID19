@@ -4,7 +4,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=28
-#SBATCH --mem-per-cpu=4751
+#SBATCH --mem-per-cpu=4571
 #SBATCH --time=48:00:00
 
 #PBS  -l nodes=1:ppm=16

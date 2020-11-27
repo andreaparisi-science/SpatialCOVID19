@@ -1,8 +1,9 @@
 // Relevant files loaded at execution time
 static  std::string  contactMatrixFile = "../../../../Data/Italy/Contacts/ItalyContactMatrix";
-static  std::string  ageGroupEsriFile  = "../../../../Data/Italy/Setup/Italy_%dkm_%d.dat";
+static  std::string  ageGroupEsriFile  = "../../../../Data/Italy/Setup/Italy_%dkm_%d.asc";
 static  std::string  identifiersFile   = "../../../../Data/Italy/Maps/Italy_%dkm_ids.asc";
 static  std::string  timeseriesFile    = "../../../../Data/Italy/Italy_timeseries.dat";
+static  std::string  fileDeathsByAge   = "../../../../Data/Italy/Private/deathsByAge.dat";
 
 static  std::string  importedCasesFile = "../../../../Data/Italy/Private/distrCases_byId.dat";
 // ITALY DATA
@@ -58,8 +59,8 @@ Intervention  nationwideLockdown;
 
 enum  {EXTENT_LOCAL = 1, EXTENT_PROVINCE, EXTENT_NATIONAL};
 std::vector<Intervention>	interventions = {
-	Intervention( POLICY_REDUCE_INFLIGHT, EXTENT_NATIONAL,  0,  0, 1.00 )
-/*	Intervention( POLICY_TRACING_PROB,    EXTENT_LOCAL,     0,  0, 1.00 ),  // 23rdFeb (lockdown local to some municipalities)
+//	Intervention( POLICY_REDUCE_INFLIGHT, EXTENT_NATIONAL,  0,  0, 1.00 )
+	Intervention( POLICY_TRACING_PROB,    EXTENT_LOCAL,     0,  0, 1.00 ),  // 23rdFeb (lockdown local to some municipalities)
 	Intervention( POLICY_TRACING_PROB,    EXTENT_PROVINCE,  0,  0, 1.00 ),  // 23rdFeb (lockdown local to some municipalities)
 	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL,  0,  0, 1.00 ),  // 23rdFeb (lockdown local to some municipalities)
 	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_LOCAL,     7,  0, 0.80 ),
@@ -67,6 +68,7 @@ std::vector<Intervention>	interventions = {
 	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_LOCAL,     7,  0, 0.80 ),
 	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_LOCAL,     7,  0, 0.80 ),
 	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_LOCAL,     7,  0, 0.80 ),
+	Intervention( POLICY_STAYATHOME_FULL, EXTENT_LOCAL,	7,  0, 1.00 ),
 	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_LOCAL,     7,  0, 2.00 ),
 	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_LOCAL,     7,  0, 1.00 ),
 
@@ -76,7 +78,6 @@ std::vector<Intervention>	interventions = {
 	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_PROVINCE,  8,  0, 0.15 ),  //  1st Mar (restriction local to yellow provinces)
 	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_PROVINCE,  8,  0, 0.10 ),  // Work reduction
 	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_PROVINCE,  8,  0, 0.15 ),
-	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_PROVINCE,  8,  0, 0.15 ),
 	Intervention( POLICY_TRAVELREDUCTION, EXTENT_PROVINCE,  8,  0, 0.15/0.90 ),
 
 	Intervention( POLICY_TRACING_PROB,    EXTENT_LOCAL,    11,  7, 0.00 ),  // 27th Feb testing on symptomatics only
@@ -87,15 +88,16 @@ std::vector<Intervention>	interventions = {
 	Intervention( POLICY_STAYATHOME_AGE,  EXTENT_NATIONAL, 14, 14, 0.85 ),
 	Intervention( POLICY_STAYATHOME_SCH,  EXTENT_NATIONAL, 14, 14, 0.85 ),
 	Intervention( POLICY_STAYATHOME_OTH,  EXTENT_NATIONAL, 14, 14, 0.65 ),
-	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_NATIONAL, 14,  0, 2.00 ),
-	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_NATIONAL, 14,  0, 1.00 ),
+	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_PROVINCE, 14,  0, 2.00 ),
+	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_PROVINCE, 14,  0, 1.00 ),
 
 	Intervention( POLICY_SCHOOL_CLOSURE,  EXTENT_NATIONAL, 17,  0, 1.00 ),  //  4th Mar (nationwide school closures)
 	Intervention( POLICY_FAMILY_TRANSMIT, EXTENT_NATIONAL, 17,  0, 2.00 ),
 
 		nationwideLockdown = // assignment within assignment, for specific referencing elsewhere
-	Intervention( POLICY_TRAVELRED_ADMIN, EXTENT_NATIONAL, 22,  0, 0.00 )  // 95% 
-
+	Intervention( POLICY_TRAVELRED_ADMIN, EXTENT_NATIONAL, 22,  0, 0.00 ),  // 95% 
+	Intervention( POLICY_STAYATHOME_FULL, EXTENT_NATIONAL, 22,  0, 1.00 )
+/*
 //	Intervention( POLICY_SOCIALDIST_PROB, EXTENT_NATIONAL, 44,  7, 0.85 ),  //  Increases in social distancing and isolation follows data from google trends
 
 //''	Intervention( POLICY_TRACING_PROB,    EXTENT_NATIONAL, 52, 10, 1.00 )  //  ~7 April - 10 days increses in testing with new test-isolate policy
@@ -118,9 +120,12 @@ std::vector<Intervention>	interventions = {
 std::vector< std::vector<double> >  firstInfections; //(1, {0.0, 0.0, 0.0, 9.705, 45.16});
 
 std::vector< std::vector<int> >    idsMap;
+std::vector< std::vector<double> > ageIdsPop;
+std::vector<double>  idsPop;
 int   maxId = 0;
 void  loadIdentifiers( const std::string datafile )  {
 	char ch_filename[256];
+	int ids, nAgeGroups = groups[ groups.size()-1 ] + 1;
 	std::string  filename;
 	sprintf( ch_filename, datafile.c_str(), GRIDRES );
 	filename = std::string( ch_filename );
@@ -136,6 +141,18 @@ void  loadIdentifiers( const std::string datafile )  {
 			}
 		}
 	}
+
+	ageIdsPop.resize( nAgeGroups, std::vector<double>(maxId+1, 0.0) );
+	idsPop.resize( maxId+1, 0.0 );
+	for (int ii = 0; ii < data.ncols; ii++)  {
+		for (int jj = 0; jj < data.nrows; jj++)  {
+			ids = idsMap[ii][jj];
+			for (int age = 0; age < nAgeGroups; age++)  {
+				ageIdsPop[ age ][ ids ] += baseMap[ age ][ii][jj];
+				idsPop[ ids ] += baseMap[ age ][ii][jj];
+			}
+		}
+	}
 }
 
 
@@ -147,6 +164,7 @@ int     evalDaily()  {
 	}
 	return 0;
 }
+
 
 
 int     evalLocally()  {
@@ -176,11 +194,13 @@ void  loadImportProbs()  {
 	int nAgeGroups = groups[ groups.size()-1 ] + 1;
 	int  ids, age;
 	double dummy, prob;
+	DataBuffer  shareInit;	
 
 	importProbs.resize( maxId+1 );
 	for (int jj = 1; jj <= maxId; jj++)  {
 		importProbs[jj].resize( nAgeGroups, 0.0 );
 	}
+	params.iomega = 0.0;
 	while (instream.good())  {
 		instream >> ids;
 		if (instream.eof())  break;
@@ -188,11 +208,20 @@ void  loadImportProbs()  {
 
 //std::cout << "***** " << maxId << " " << ids << " "  << age << "\n" << std::flush;
 		for (int age = 0; age < nAgeGroups; age++)  {
-			importProbs[ids][age] = prob;
+//			importProbs[ids][age] = prob / ageIdsPop[age][ids];
+			importProbs[ids][age] = prob / idsPop[ ids ];
+			params.iomega = std::max( params.iomega, importProbs[ids][age] );
 		}
 //		instream.peek();
 	}
+	for (int ids = 1; ids <= maxId; ids++)  {
+		for (int age = 0; age < nAgeGroups; age++)  {
+			importProbs[ids][age] /= params.iomega;
+		}
+	}
+
 }
+
 
 
 bool  importedCase()  {
@@ -209,6 +238,7 @@ bool  importedCase()  {
 	}
 	return false;
 }
+
 
 
 int  ximportedCase( int nn )  {
@@ -230,16 +260,22 @@ inline  double getMobilityDuration(double dist)  {
 }
 
 
+
 inline  void  initCountrySpecific()  {
 	loadIdentifiers( identifiersFile );
 	loadImportProbs();
 }
 
 
+
 // FITTING  PROTOTYPE FOR GENERALIZATION
 std::vector< int >  inputTable = {DATA_SYMPT, DATA_DEATHS};
-std::vector< int >  paramTable = {PARAM_T0, PARAM_BETA, PARAM_OMEGA};
+//std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_OMEGA};
+std::vector< int >  paramTable = {PARAM_T0, PARAM_R0, PARAM_GAMMA, PARAM_OMEGA};
+//std::vector< int >  paramTable = {PARAM_R0};
 std::vector< int >  distsTable = {DATA_DEATHS};
+std::vector< int >  printTable = {DATA_DEATHS};
+std::vector< int >  contrTable = {POLICY_SOCIALDIST_PROB, POLICY_SCHOOL_CLOSURE, POLICY_TRACING_PROB, POLICY_REDUCE_INFLIGHT};
 
 
 
@@ -318,6 +354,7 @@ int  provinceToRegion( int province )  {
 	}
 	return  region;
 }
+
 
 
 bool  checkLockdown(int x0, int y0)  {

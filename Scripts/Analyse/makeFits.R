@@ -8,19 +8,21 @@ if (length(args) < 2)  {
 }
 
 previous <- 0
-ts.previous <- 0
 country <- args[1]
 startDate <- args[2]
 if (length(args) > 2)  {
-        previous <- as.numeric(args[3])
-		ts.previous <- previous
-}
-if (length(args) > 3)  {
-        ts.previous <- as.numeric(args[4])
+	previous <- as.numeric(args[3])
 }
 
 dat <- read.table("Fits/output.dat", header=TRUE)
 #edit(dat)
+
+####
+# EDIT HERE IF YOU WANT TO SET LIMITS
+#
+ylimits.low  <- c( 0, log(1.0), 0.2, log(0.001), 0, 0, 0, 0, 0)
+ylimits.high <- c(90, log(7.0), 8.0, log(1.), 1, 1, 1, 1, 1)
+####
 
 
 timer.max <- max(dat$Timer) - previous
@@ -33,7 +35,7 @@ ndata <- length(colnames(dat))
 nrows <- floor((ndata-1) / 3)+1
 par(mfrow=c(nrows, 3))
 for (kk in seq(1,ndata))  {
-	plot(density(dat[,kk]), main=colnames(dat)[kk])
+	plot(density(dat[,kk]), main=colnames(dat)[kk], xlim=c(ylimits.low[kk],ylimits.high[kk]))
 }
 par(mfrow=c(nrows, 3))
 for (kk in seq(1,ndata))  {
@@ -52,7 +54,7 @@ for (jj in 1:ncol(dat))  {
 #ts <- read.table( paste("../../Data/", country, "/", country, "_timeseries.dat", sep='') )
 ts <- read.table( paste(country, "_timeseries.dat", sep=''), header=FALSE )
 #print(ts)
-directory <- paste("Fits/Generation-", (timer.max-ts.previous), sep='')
+directory <- paste("Fits/Generation-", timer.max, sep='')
 #fullname  <- paste("directory", "successfulRun-", sep='/')
 fullnames <- list.files( path=directory, pattern='successfulRun*', full.names=TRUE )
 kk <- 1
@@ -66,11 +68,14 @@ for (file in fullnames)  {
 	lower <- as.vector( c(0,(seps+1))[1:(length(seps))] )
 	for (jj in 1:length(upper))  {
 		section <- readData[lower[jj]:upper[jj],]
-		#particles <- rbind(particles, data.frame( t=c(section[,1]), cases=c(section[,2]) ))
-		particles <- merge(particles, data.frame( t=c(section[,1]), cases=c(section[,2]) ), by = 't', all.y=TRUE)
+		newset    <- data.frame( t=section[,1], cases=section[,2] )
+		colnames(newset) <- c("t", paste('cases.', kk, sep=''))
+		particles <- merge(particles, newset, by = 't', all.y=TRUE)
 		kk <- kk+1
 	}
 }
+particles$cases <- NULL  # Remove unused first column
+#edit(particles)
 particles[is.na(particles)] <- 0
 particles <- particles[1:(nrow(particles)-1),]
 times    <- unlist(particles[,1]) + as.Date(startDate)
@@ -81,7 +86,6 @@ p.high   <- apply(particles, 1, quantile, 0.750)
 p.max    <- apply(particles, 1, quantile, 0.975)
 p.median <- apply(particles, 1, median)
 p.mean   <- apply(particles, 1, mean)
-
 pdf("fitTimeseries.pdf", width=7, height=5)
 size <- 1.6
 par(mfrow=c(1,1))
@@ -99,7 +103,33 @@ lines(times, p.max, type='l', col=rgb(0.3,0.3,0.8))
 lines(times, p.min, type='l', col=rgb(0.2,0.2,0.8))
 lines(times, p.max, type='l', col=rgb(0.2,0.2,0.8))
 
-times <- seq(1,length(ts[,2])) + as.Date(startDate)
-lines(x=times, y=ts[,2], type='l', lty='dashed', col=rgb(1,0,0), lwd=1.6)
+newtimes <- seq(1,length(ts[,2])) + as.Date(startDate)
+lines(x=newtimes, y=ts[,2], type='l', lty='dashed', col=rgb(1,0,0), lwd=1.6)
+legend((x.max-x.min)*0.02+x.min, y.max*0.95, legend=c("Data", "Median", "50% PI", "95% PI"), lty=1, lwd=c(1.6, 1.6, 6.4, 6.4), col=c(rgb(1,0,0), rgb(0.2,0.2,1), rgb(0.5,0.5,0.9), rgb(0.7,0.7,0.9)), cex=1.2)
+
+
+pdf("fitTimeseries-diff.pdf", width=7, height=5)
+size <- 1.6
+par(mfrow=c(1,1))
+x.min <- min(times)
+x.max <- max(times)
+y.max <- max(p.max)
+plot( c(x.min, x.max), c(0, y.max), ty='n', cex.axis=1.6, cex.lab=1.6, cex.main=1.6, xlab="Time", ylab="Deaths" )
+abline( v=as.Date(startDate), lty=2, col="black", lwd=1.6 )
+polygon( c(times, rev(times)), c(p.min, rev(p.max)),  col=rgb(0.7, 0.7, 0.9) )
+polygon( c(times, rev(times)), c(p.low, rev(p.high)), col=rgb(0.5, 0.5, 0.9) )
+lines(times, p.median, type='l', col=rgb(0.2,0.2,1), lwd=1.6)
+#lines(times, p.mean,   type='l', col=rgb(0,0,1))
+lines(times, p.min, type='l', col=rgb(0.3,0.3,0.8))
+lines(times, p.max, type='l', col=rgb(0.3,0.3,0.8))
+lines(times, p.min, type='l', col=rgb(0.2,0.2,0.8))
+lines(times, p.max, type='l', col=rgb(0.2,0.2,0.8))
+
+newtimes <- seq(1,length(ts[,2])) + as.Date(startDate)
+yvals <- diff(ts[,2], 1)
+#print(yvals)
+yvals <- c(ts[,2][1], yvals)
+#print(yvals)
+lines(x=newtimes, y=yvals, type='l', lty='dashed', col=rgb(1,0,0), lwd=1.6)
 legend((x.max-x.min)*0.02+x.min, y.max*0.95, legend=c("Data", "Median", "50% PI", "95% PI"), lty=1, lwd=c(1.6, 1.6, 6.4, 6.4), col=c(rgb(1,0,0), rgb(0.2,0.2,1), rgb(0.5,0.5,0.9), rgb(0.7,0.7,0.9)), cex=1.2)
 

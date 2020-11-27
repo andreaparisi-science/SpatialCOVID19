@@ -10,7 +10,7 @@ GENERAL:
 	AccessCycle	1
 
 POPULATIONS:
-	Default "../../Setup/Kenya_5km.asc"	None	RadiationNorm	0.05
+	Default "../../Setup/Italy_5km.asc"	None	RadiationNorm	0.05
 
 CLASSES:
 	Sus	1

@@ -1,7 +1,7 @@
 CORES:=12
 GRIDRES:=5
-COUNTRY:=Italy
-OUTPUT  := ../Output/${OUTDIR}
+COUNTRY:=Kenya
+OUTPUT  := ../Output
 CWD := $(shell pwd)
 OPTS = $(eval OPTS := $$(shell bash testTauleap.sh))$(OPTS)
 

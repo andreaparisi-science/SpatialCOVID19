@@ -3,8 +3,7 @@
 #include <fstream>
 #include <cmath>
 
-#include "SimplexSearch.cpp"
-#include "SplineInterpolator.cpp"
+#include "SimplexSearch.h"
 
 
 void assignPreferredLocations();
@@ -40,7 +39,7 @@ public:
 void  loadAscFile(const std::string&, std::vector< std::vector<MobData> > &);
 void	  loadStoreFile(const std::string&, std::vector< std::vector<MobData> > &);
 void  loadCommutingData(const std::string&, std::vector<GroupData> &, int);
-double  evaluateModel(double factor);
+double  evaluateModel(double factor, int method);
 std::map<int, int>  buildGroups( const std::string );
 
 std::vector< std::vector<MobData> >  popMap;
@@ -496,7 +495,7 @@ void  constrainParams(std::vector<double> &vec)  {
 }
 
 
-
+/*
 void  analyzeTripDistribution()  {
 	ifstream  handler("TripDistribution.tsv");
 	std::vector<double> xx, yy;
@@ -547,7 +546,7 @@ void  analyzeTripDistribution()  {
 	}
 	std::cout << "TRIP TOTALS: " << total << " " << weightot << "\n";
 }
-
+*/
 
 
 
@@ -568,7 +567,7 @@ void  accessCycle( int status )  {
 
 	switch (status)  {
 		case CYCLE_INIT:
-			analyzeTripDistribution();
+			//analyzeTripDistribution();
 			loadAscFile( std::string("../Kenya_") + std::to_string(GRIDRES) + "km_maonly.asc", popMap);
 			loadStoreFile("storage", popMap);
 			groups = buildGroups(strgroups);

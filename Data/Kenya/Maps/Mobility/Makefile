@@ -2,8 +2,14 @@ CORES:=12
 GRIDRES:=5
 COUNTRY:=Kenya
 
+PWD=$(shell pwd )
+
 all:
-	deryaSE --define GRIDRES=${GRIDRES} CoV.lse
+	\rm -f SimplexSearch.*
+	ln -s ../../../../Main/Mobility/SimplexSearch.cpp .
+	ln -s ../../../../Main/Mobility/SimplexSearch.h   .
+	g++ -c -o SimplexSearch.o  SimplexSearch.cpp
+	deryaSE --define GRIDRES=${GRIDRES} --linkopts ${PWD}/SimplexSearch.o CoV.lse
 	mpirun -np ${CORES} ./runderyaSE 1
 
 clean:
