@@ -1,6 +1,8 @@
 REQUIREMENTS:
 
 - A complete gnu C++ compiler
+- LibTiff
+- libblas, liblapack
 - The MPI library installed
 - A python interpreter
 - For data analysis, the R interpreter
