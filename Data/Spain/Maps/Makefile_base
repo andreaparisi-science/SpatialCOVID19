@@ -1,0 +1,16 @@
+
+all:
+	make counties
+
+counties:
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield NAMEUNIT --export Shapefiles/SIGLIM_Publico_INSPIRE/SHP_ETRS89/recintos_provinciales_inspire_peninbal_etrs89/recintos_provinciales_inspire_peninbal_etrs89.shp
+	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_ids.asc
+	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_ids.ppm
+	mkdir -p Counties
+	mv *.dat Counties/
+
+clean:
+	\rm -f *.asc
+	\rm -f *.ppm
+	\rm -f Counties/*
+
