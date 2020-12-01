@@ -16,7 +16,7 @@ cd ..
 echo -e "\033[36;1mDownloading maps\033[0m"
 cd Data/${COUNTRY}
 cd Gridded
-#bash install.sh
+bash install.sh
 
 echo -e "\033[36;1mRescaling maps\033[0m"
 cd ../Setup
@@ -26,8 +26,8 @@ echo COUNTRY:=${COUNTRY} >> Makefile
 echo OUTDIR:=Out${COUNTRY} >> Makefile
 echo PROCS:=${PROCS} >> Makefile
 cat Makefile_base >> Makefile
-#make
-#make part
+make
+make part
 
 echo -e "\033[36;1mWorking on maps\033[0m"
 cd ../Maps
