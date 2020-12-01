@@ -152,56 +152,11 @@ void  updateChineseEigenvalue();
 #		include "UK-setup.cpp"
 #	elif COUNTRY == Spain
 #		include "Spain-setup.cpp"
-#	elif COUNTRY == UK2
-#		include "UK2-setup.cpp"
 #	else
 #		error Unrecognized name for COUNTRY.
 #	endif
 #endif
 
-// Joe & Matt first approach.  NOT USED now
-/*static  std::vector<double>  susceptibility = {
-	0.00282026497661079,
-	0.00364014459290738,
-	0.00288739193982039,
-	0.0120953741300004,
-	0.0377834101532493,
-	0.0579847625162934,
-	0.068531081222694,
-	0.0672540390061978,
-	0.06158432860095,
-	0.0965786717540175,
-	0.118036726176092,
-	0.156930489217356,
-	0.284027163570426,
-	0.393072078509953,
-	0.411985317312746,
-	0.641615696240083
-};
-
-
-// Brand S. etal (2020) symptomatic fractions by age and transmissibility.  
-// Rows are age groups, columns are transmission levels (0.0, 0.15, 0.25, 0.50, 1.00)
-static std::vector< std::vector<double> >  symptomatic = {
-	{0.0032162928721740547, 0.0019086591398639221, 0.001526200293108504, 0.0015050181239767404, 0.0014432192790456596},
-	{0.0025163985012532524, 0.0013458086273749326, 0.0010464701838377496, 0.000962294586193556, 0.0009357685327922587},
-	{0.00334013535150579, 0.001591552396296836, 0.0012034412294856776, 0.001122214491377564, 0.0010761342759786922},
-	{0.003659635031500512, 0.0018821688155611128, 0.0014635316688939558, 0.0014231888053253985, 0.0013458086273749326},
-	{0.03059388453983771, 0.018366923571798966, 0.014893246507446924, 0.014686542795053286, 0.013695268824959014},
-	{0.03974987470281975, 0.021419249458555244, 0.01761274351004964, 0.01736829583592139, 0.016889531485125703},
-	{0.08656450365699372, 0.04430308724092091, 0.03397095366723376, 0.031238410139814973, 0.03167807081661833},
-	{0.06543702388380312, 0.03397095366723376, 0.026786815880391338, 0.02568689937146875, 0.024290277337257693},
-	{0.06533371691360246, 0.03397095366723376, 0.029539946993910837, 0.028326981798033054, 0.028326981798033054},
-	{0.12365117334923718, 0.06552219944626281, 0.04750977837915582, 0.04248392003306334, 0.040739451216136126},
-	{0.1641805544108621, 0.10391828181800267, 0.08194176439475051, 0.07430476961279056, 0.07430476961279056},
-	{0.12118804724498734, 0.12462334187198994, 0.12815601614527444, 0.12815601614527444, 0.13743204603117717},
-	{0.1949095327760354, 0.17674391118172914, 0.18175403736365037, 0.17923146887955166, 0.17923146887955166},
-	{0.26507498195578383, 0.27642552857253, 0.3091267376127518, 0.3178894947074111, 0.3315015659109177},
-	{0.12004566675626463, 0.17674391118172914, 0.237033821675666, 0.2803160413878102, 0.2923192122329743},
-	{0.6050993286002224, 0.5112690095796085, 0.4145743494560396, 0.3812269649128545, 0.375935907058367},
-	{1.00, 1.00, 1.00, 1.00, 1.00}
-};
-*/
 
 
 // This is the class storing individual data
@@ -221,8 +176,6 @@ public:
 		contacts.shrink_to_fit();
 		family.clear();
 		family.shrink_to_fit();
-		//std::vector<int>().swap( contacts );
-		//std::vector<int>().swap( family );
 	}
 	void  packData( unsigned int& len, char* buffer )  {
 		int sz, pos = 0;
@@ -346,11 +299,9 @@ void  getAgeGroups()  {
 		// Discard header infos
 		for (int qq = 0; qq < 12; qq++)  handler >> dummy;
 
-//std::cout << "DUMMY: " << dummy << "\n" << std::flush;
 
 		// Read contents
 		for (int qq = nrows-1; qq >= 0; qq--)  {
-//		for (int qq = 0; qq < nrows; qq++)  {
 			for (int kk = 0; kk < ncols; kk++)  {
 				handler >> baseMap[aa][kk][qq];
 			}
@@ -386,9 +337,6 @@ void  resetCounters()  {
 	for (int jj = 0; jj < cumulDeaths.size(); jj++)  cumulDeaths[jj] = gcumulDeaths[jj] = 0;
 	for (int jj = 0; jj < cumulCases.size(); jj++)   cumulCases[jj]  = gcumulCases[jj] = 0;
 	firstinfected = 0;
-//	firstimported = true;
-//	globalFirstimported = true;
-//	countDaysDelay = 0;
 }
 
 
@@ -497,29 +445,6 @@ void  init()  {
 	int yy = simStatus.getY();
 	int nn = 0, count = 0;
 	Infos *data;
-	//std::cout << "INIT " << xx << " " << yy << " " << xpre << " " << ypre << " " << nrows << "x" << ncols << "\n" << std::flush;
-	//std::cout << "XXX\n" << std::flush;
-	//std::cout << "POPS1 " << popMap[xx][yy] << "\n";
-	//std::cout << "YYY\n" << std::flush;
-	//std::cout << "POPS2 " << simStatus.getLocalPopulationSize() << "\n";
-	//std::cout << "ZZZ\n" << std::flush;
-	//assert( popMap[xx][yy] == simStatus.getLocalPopulationSize() );
-
-/*	if (xx != xpre || yy != ypre)  {
-		xpre = xx; ypre = yy;
-	}
-	return;
-	{
-		for (int xx = 0; xx < ncols; xx++)  {
-			for (unsigned yy = 0; yy < 2; yy++)  {
-//		for (int yy = nrows-1; yy >= nrows-2; yy--)  {
-				if (xx > 0)  std::cout << " ";
-				std::cout << popMap[xx][yy] << std::flush;
-			}
-			std::cout << "\n";
-		}
-	}
-*/
 
 #ifndef  TAULEAP
 	data = reinterpret_cast<Infos*>( simStatus.getIndividualData( indivId, classId ) );
@@ -655,8 +580,6 @@ void  recovery(Infos *data)  {
 	data->contacts.shrink_to_fit();
 	data->family.clear();
 	data->family.shrink_to_fit();
-	//std::vector<int>().swap(data->contacts);
-	//std::vector<int>().swap(data->family);
 }
 
 
@@ -950,16 +873,6 @@ std::cout << "STAY AT HOME " << stayAtHomeLimit[0] << " " << stayAtHomeLimit[1] 
 
 		case CYCLE_START:
 			extractFirstInfective();
-#ifndef FITTING
-#	ifdef  MODEL_SEIR
-			// In this case we leave the default all symtpomatics
-			//getSymptomaticRate(DET_RATE, 0.0);
-#	else
-// !!!!!			getSymptomaticRate(DET_RATE, SYMPTOMATIC_MULTIPLIER);
-#	endif
-			//params.eigen = R0_tau[DET_RATE];
-//			std::cout << "@@@ " << params.eigen <<" " << params.R0 <<" " << 1.0/params.gamma << " " << 1.0 / params.sigma << "\n";
-#endif
 			initPolicyParams();
 			resetCounters();
 			queue.clear();
@@ -1292,7 +1205,6 @@ void  buildAgeAssignments()  {
 	std::vector<std::string>  names = {"Sus_", "Esp_", "Inf_", "Asy_", "Rec_", "Asyrec_"};
 #else
 	std::vector<std::string>  names = {"Sus_", "Esp_", "Inf_", "Asy_", "Wai_", "Hos_", "Icu_", "Hom_", "Rec_", "Ded_", "Asyrec_"};
-//	std::vector<std::string>  names = {"Sus_", "Esp_", "Inf_", "Asy_", "Hos_", "Icu_", "Hom_", "Rec_", "Ded_", "Asyrec_"};
 #endif
 	for (int jj = 0; jj < names.size(); jj++)  {
 		for (int kk = 0; kk < nAgeGroups; kk++)  {
@@ -1440,7 +1352,6 @@ void  familyTransmission(int indivId, int classId, Infos* data)  {
 	//				prob *= localKK_home[ susAge ][ infAge ];
 					prob *= zz[susAge];
 					if (RNG->get() < 1.0-std::exp( -prob ))  {
-	//				if (RNG->get() < 1.0)  {
 						Infos *other = reinterpret_cast<Infos*>( simStatus.getIndividualData( infosother.id, infosother.status ) );
 						if (data->uniqueId == 0)  {
 							data->uniqueId = ++mainUniqueId;
@@ -1462,88 +1373,9 @@ void  familyTransmission(int indivId, int classId, Infos* data)  {
 	}
 
 
-/*
-	if (infosthis.placeOfContact == 0 && isSusceptible(classId))  {
-		for (int kk = 0; kk < data->family.size(); kk++)  {
-			int rank = data->family[kk];
-			if (rank == infosthis.home.rank)  {
-				continue;
-			}
-
-			try {
-				infosother = simStatus.getIndividualInfoByRank(rank);
-			} catch (std::exception &e)  {
-//				std::cout << "Not at home\n" << std::flush;
-				continue;
-			}
-
-//			std::cout << "This guy is at home!\n" << std::fflush;
-			if (isInfective(infosother.status))  {
-				if (RNG->get() < 1.0-std::exp( -prob ))  {
-					Infos *other = reinterpret_cast<Infos*>( simStatus.getIndividualData( infosother.id, infosother.status ) );
-					if (other->uniqueId == 0)  {
-						other->uniqueId = ++mainUniqueId;
-					}
-			
-					if (tracingOn && RNG->get() < TRACING_PROB)  {
-						data->contacts.push_back(other->uniqueId);
-					}
-
-					int newClass = ageNames[ classId ];
-					newClass = classmapper[ "Esp_" + std::to_string(newClass) ];
-
-//					std::cout << "MOVING: " << indivId << "/" << simStatus.cell->indivhome->size() << " " << classId << " " << newClass << "\n" << std::flush;
-					simStatus.moveSpecificIndividualToClass( indivId, classId, newClass );
-				}
-			}
-		}
-	}*/
 }
 
 
-/*
-void  getSymptomaticRate(int detect, double multiplier)  {
-	params.zz_0 = symptomatic[0][detect]*multiplier;
-	params.zz_1 = symptomatic[1][detect]*multiplier;
-	params.zz_2 = symptomatic[2][detect]*multiplier;
-	params.zz_3 = symptomatic[3][detect]*multiplier;
-	params.zz_4 = symptomatic[4][detect]*multiplier;
-	params.zz_5 = symptomatic[5][detect]*multiplier;
-	params.zz_6 = symptomatic[6][detect]*multiplier;
-	params.zz_7 = symptomatic[7][detect]*multiplier;
-	params.zz_8 = symptomatic[8][detect]*multiplier;
-	params.zz_9 = symptomatic[9][detect]*multiplier;
-	params.zz_10 = symptomatic[10][detect]*multiplier;
-	params.zz_11 = symptomatic[11][detect]*multiplier;
-	params.zz_12 = symptomatic[12][detect]*multiplier;
-	params.zz_13 = symptomatic[13][detect]*multiplier;
-	params.zz_14 = symptomatic[14][detect]*multiplier;
-	params.zz_15 = symptomatic[15][detect]*multiplier;
-	params.zz_16 = symptomatic[16][detect]*multiplier;
-//	std::cout << "ZZ " << params.zz_7 << " " << params.zz_15 << "\n";
-}
-
-
-void  getSusceptibility()  {
-	params.zz_0 = susceptibility[0];
-	params.zz_1 = susceptibility[1];
-	params.zz_2 = susceptibility[2];
-	params.zz_3 = susceptibility[3];
-	params.zz_4 = susceptibility[4];
-	params.zz_5 = susceptibility[5];
-	params.zz_6 = susceptibility[6];
-	params.zz_7 = susceptibility[7];
-	params.zz_8 = susceptibility[8];
-	params.zz_9 = susceptibility[9];
-	params.zz_10 = susceptibility[10];
-	params.zz_11 = susceptibility[11];
-	params.zz_12 = susceptibility[12];
-	params.zz_13 = susceptibility[13];
-	params.zz_14 = susceptibility[14];
-	params.zz_15 = susceptibility[15];
-//	std::cout << "ZZ " << params.zz_7 << " " << params.zz_15 << "\n";
-}
-*/
 
 
 void  shareOutputData()  {
@@ -1578,20 +1410,6 @@ void  shareOutputData()  {
 }
 
 
-
-/*void  printextra( FILE *handler, int fd )  {
-	int nAgeGroups = groups[ groups.size()-1 ] + 1;
-
-	
-	fprintf( handler, "\t%d %d\t%d %d %d %g %g %g\t", gtotalCases, gtotalAsyCases, goccupancy[OCC_HOS], goccupancy[OCC_ICU], goccupancy[OCC_HOM], SOCIALDIST_PROB[0], SCHOOL_CLOSURE[0], TRACING_PROB[0] );
-	int sum = 0;
-	for (int kk = 0; kk < nAgeGroups; kk++)  {
-		sum += gcumulDeaths[kk];
-		fprintf( handler, "%d ", gcumulDeaths[kk] );
-	}
-	fprintf( handler, "%d", sum );
-}
-*/
 
 
 void  printextra( FILE *handler, int fd )  {
@@ -1681,7 +1499,6 @@ bool  importedBase()  {
 int constexpr STOREBUFFER_SZ = 5*1000*1000;
 
 void  doFitting( int status, PolicyQueue &queue )  {
-	//enum {PARAM_R0 = 0, PARAM_TAU, PARAM_ZMAX, PARAM_T0};
 #ifndef BOLFI
 	static std::unique_ptr<FittingABC> fitting;
 #else
@@ -1976,7 +1793,6 @@ void  doFitting( int status, PolicyQueue &queue )  {
 
 		case CYCLE_START:
 //std::cout << "[" << simStatus.getProcessId() << " START \n" << std::flush;
-//			simStatus.setSimulationLength( nweeks * 7 + 1 );
 			if (simStatus.getTime() == 0.0 && params.Restart != 1 && params.Restart != 4)  {
 				std::cout << "Loading data from storage.\n" << std::flush;
 				MPI_Status  mpiStatus;
@@ -2115,8 +1931,6 @@ do {
 
 					case  PARAM_OMEGA:
 						params.somega = std::exp(trialParticle.parameters[jj+deltaParams]);
-//						officialImportationRate = params.somega;
-//						params.somega = params.importOmega;
 						break;
 
 					case  PARAM_SUSCEPTIBILITY:
@@ -2216,11 +2030,6 @@ do {
 			fitting->acceptParticle(trialParticle);
 //std::cout << "CHECK N1\n" << std::flush;
 
-#ifdef  MODEL_SEIR
-// !!!!!!!			getSymptomaticRate(DET_RATE, SYMPTOMATIC_MULTIPLIER);
-#else
-// !!!!!!!			getSymptomaticRate( static_cast<int>(params.tau), params.zmax );
-#endif
 
 
 			chiSquared = 0.0;
@@ -2578,20 +2387,6 @@ do {
 }
 
 
-
-
-void  evaluateR0( int tau_lvl )  {
-	int nAgeGroups = groups[ groups.size()-1 ] + 1;
-
-	std::vector< std::vector<double> >  MM;
-	MM.resize(3*nAgeGroups);;
-	for (int jj = 0; jj < nAgeGroups; jj++)  {
-		MM[jj].resize(3*nAgeGroups, 0.0);
-	}
-
-	// Build FF matrix:
-	
-}
 
 
 
