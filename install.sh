@@ -50,7 +50,7 @@ echo -e "\tIndivPrefLocs\t0" >> CoV.lse
 echo -e "\tIndivHasData\t0" >> CoV.lse
 echo -e "\tAccessCycle\t1" >> CoV.lse
 echo -e "\nPOPULATIONS:" >> CoV.lse
-echo -e "\tDefault \"../../Setup/Kenya_5km.asc\"\tNone\tRadiationNorm\t0.05" >> CoV.lse
+echo -e "\tDefault \"../../Setup/${COUNTRY}_${GRIDRES}km.asc\"\tNone\tRadiationNorm\t0.05" >> CoV.lse
 cat CoV_base.lse >> CoV.lse
 
 echo CORES:=${CORES} > Makefile
