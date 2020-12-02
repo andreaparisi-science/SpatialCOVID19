@@ -13,7 +13,8 @@ constexpr double NR = 0.2;
 constexpr double minLim = 90.0;
 constexpr double delta  = 0.25;
 constexpr double TIMEFRAME = 1.0;
-constexpr double REL_ERROR = 1.e-2;
+constexpr double REL_ERROR_Y = 1.e-3;
+constexpr double REL_ERROR_X = 1.e-3;
 const std::string commutingFile = "Data/ItalyCommuting.csv";
 const std::string country = "Italy";
 
@@ -551,7 +552,7 @@ void  accessCycle( int status )  {
 			//start[2] = simStatus.getMobilityParameter(3);
 			//start[1] = simStatus.getMobilityParameter(4);
 			scale = {1.0};
-			std::tie<arma::vec, double>(pt, f1) = searcher.search(buildMobility, vstart, scale, REL_ERROR, constrainParams, simStatus.getProcessId() == 0);
+			std::tie<arma::vec, double>(pt, f1) = searcher.search(buildMobility, vstart, scale, {REL_ERROR_X, REL_ERROR_Y}, constrainParams, simStatus.getProcessId() == 0);
 //				if (simStatus.getProcessId() == 0)  {
 //					std::cout << "*** Current optimal for mobility is [" << start[0];
 //					for (int jj = 1; jj < start.size(); jj++)  {

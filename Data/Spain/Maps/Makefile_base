@@ -1,13 +1,19 @@
 
 all:
 	make counties
+	make regions
 
 counties:
-	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield NAMEUNIT --export Shapefiles/SIGLIM_Publico_INSPIRE/SHP_ETRS89/recintos_provinciales_inspire_peninbal_etrs89/recintos_provinciales_inspire_peninbal_etrs89.shp
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield NAMEUNIT --export Shapefiles/SpainProvinces.shp
 	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_ids.asc
 	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_ids.ppm
 	mkdir -p Counties
 	mv *.dat Counties/
+
+regions:
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield NAMEUNIT Shapefiles/SpainRegions.shp
+	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_reg.asc
+	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_reg.ppm
 
 clean:
 	\rm -f *.asc
