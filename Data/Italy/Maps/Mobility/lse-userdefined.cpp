@@ -3,9 +3,6 @@
 #include <fstream>
 #include <cmath>
 
-#include "SimplexSearch.h"
-#include "SplineInterpolator.h"
-
 
 void assignPreferredLocations();
 void storeIndividualData( const char * );
@@ -72,19 +69,6 @@ double  ToAngleY( double y0, MapData &data )  {
 
 
 double  haversine( double, double, double, double );
-/*double  haversine( double lon1, double lat1, double lon2, double lat2 )  {
-	static constexpr double RR = 6371; // Km
-	double dLat2 = ToRad(lat2-lat1)/2;
-	double dLon2 = ToRad(lon2-lon1)/2;
-	lat1 = ToRad(lat1);
-	lat2 = ToRad(lat2);
-	double tmp1 = std::sin(dLat2) * std::sin(dLat2);
-	double tmp2 = std::sin(dLon2) * std::sin(dLon2);
-	double aa = tmp1 + tmp2 * std::cos(lat1) * std::cos(lat2);
-	//c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-	double cc = 2 * std::asin(std::sqrt(aa));
-	return  RR * cc;
-}*/
 
 
 
@@ -373,7 +357,7 @@ double  evaluateModel(double factor, int method)  {
 
 
 
-void  buildHistograms(const std::vector<double> &nr, double delta)  {
+void  buildHistograms(const arma::vec &nr, double delta)  {
 	std::vector<double> dataHistogram, simsHistogram;
 	double dist, dataLim = 0, simsLim = 0, maxLim;
 	std::ofstream handler = std::ofstream( "pdf.dat" );
@@ -412,7 +396,7 @@ void  buildHistograms(const std::vector<double> &nr, double delta)  {
 		for (int ii = 0; ii < maxLim; ii++)  {
 			sum += (dataHistogram[ii] - simsHistogram[ii])*(dataHistogram[ii] - simsHistogram[ii]);
 		}
-		distances[nr[0]] = std::sqrt(sum);
+		distances[nr(0)] = std::sqrt(sum);
 		std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++\n";	
 		std::cout << "Histogram distances are:\n";
 		for (auto &el: distances)  {
@@ -424,19 +408,19 @@ void  buildHistograms(const std::vector<double> &nr, double delta)  {
 
 
 
-double  buildMobility(const std::vector<double> &nr)  {
+double  buildMobility(const arma::vec &nr)  {
 	double eval, cpc;
 	double dummy = 0.0;
 	bool   caughtException = false;
 
-	std::cout << "Checking parameters [" << nr[0];
+	std::cout << "Checking parameters [" << nr(0);
 	for (int jj = 1; jj < nr.size(); jj++)  {
-		std::cout << ", " << nr[jj];
+		std::cout << ", " << nr(jj);
 	}
 	std::cout << "]\n";
 
 	for (int jj = 0; jj < nr.size(); jj++)  {
-		simStatus.setMobilityParameter(jj, nr[jj]);
+		simStatus.setMobilityParameter(jj, nr(jj));
 		//simStatus.setMobilityParameter(0, nr[0]);
 		//simStatus.setMobilityParameter(1, nr[1]);
 		//simStatus.setMobilityParameter(4, nr[2]);
@@ -476,9 +460,9 @@ double  buildMobility(const std::vector<double> &nr)  {
 		bufferData.unpack(&eval);
 		bufferData.unpack(&cpc);
 	}
-	std::cout << "Evaluated value for parameters [" << nr[0];
+	std::cout << "Evaluated value for parameters [" << nr(0);
 	for (int jj = 1; jj < nr.size(); jj++)  {
-		std::cout << ", " << nr[jj];
+		std::cout << ", " << nr(jj);
 	}
 	std::cout << "] is [" << eval << "]; ";
 	std::cout << "CPC is [" << cpc << "]\n";
@@ -490,17 +474,29 @@ double  buildMobility(const std::vector<double> &nr)  {
 
 
 
-void  constrainParams(std::vector<double> &vec)  {
-	for (int jj = 0; jj < vec.size(); jj++)  {
-		if (vec[jj] < 0)  vec[jj] = -vec[jj];
+double  constrainParams(arma::vec &vv, bool &isConstrained)  {
+	isConstrained = false;
+	for (int jj = 0; jj < vv.size(); jj++)  {
+//		if (vec[jj] < 0)  vec[jj] = -vec[jj];
+		if (vv(jj) < 0)  {
+			isConstrained = true;
+			return  1.e300;
 		//if (vec[jj] > 1)  vec[kk] = 2.0 - vec[jj];
+		}
 	}
+	return 0.0;
 }
 
 
 
 
 
+
+arma::vec  __convertVectorToVec( const std::vector<double> &vv )  {
+	arma::vec yy( vv.size() );
+	for (int jj = 0; jj < vv.size(); jj++)  yy(jj) = vv[jj];
+	return yy;
+}
 
 
 
@@ -515,6 +511,7 @@ void  accessCycle( int status )  {
 	double  dist;
 	std::vector<double> dataHistogram, simsHistogram;
 	SimplexSearch searcher(1);
+	arma::vec  vstart, pt, scale;
 
 	switch (status)  {
 		case CYCLE_INIT:
@@ -548,11 +545,13 @@ void  accessCycle( int status )  {
 			nropt = 1.e300;
 			start.resize(1);
 			start[0] = simStatus.getMobilityParameter(0);
+			vstart = __convertVectorToVec( start );
 			//start[0] = simStatus.getMobilityParameter(0);
 			//start[1] = simStatus.getMobilityParameter(2);
 			//start[2] = simStatus.getMobilityParameter(3);
 			//start[1] = simStatus.getMobilityParameter(4);
-			f1 = searcher.search(buildMobility, start, REL_ERROR, 10, constrainParams, simStatus.getProcessId() == 0);
+			scale = {1.0};
+			std::tie<arma::vec, double>(pt, f1) = searcher.search(buildMobility, vstart, scale, REL_ERROR, constrainParams, simStatus.getProcessId() == 0);
 //				if (simStatus.getProcessId() == 0)  {
 //					std::cout << "*** Current optimal for mobility is [" << start[0];
 //					for (int jj = 1; jj < start.size(); jj++)  {
