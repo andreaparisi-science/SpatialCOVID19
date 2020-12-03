@@ -1,4 +1,4 @@
-NODE: I am sorting out a few issues with transfer of updated code on github. I was ill this week, so it will take a few more days. AP (29 Nov 2020)
+NOTE: I am sorting out a few issues with transfer of updated code on github. I was ill this week, so it will take a few more days. AP (29 Nov 2020)
 
 
 REQUIREMENTS:
@@ -13,8 +13,11 @@ REQUIREMENTS:
 
 INSTALLING
 
-The installer will download required data from the WorldPop database.
-Data for one country could range within 5-10Gb.
+The installer will download and install the required engine. 
+This will be installed locally in the directory ~/bin/DeryaSE/
+
+Following this, the installer will download required data from the 
+WorldPop database.  Data for one country could range within 5-10Gb.
 Downloading might take a long time depending on your connection.
 You can repeat the install operation for different countries or
 for different number of cores or grid resolutions.
@@ -23,25 +26,42 @@ for different number of cores or grid resolutions.
   CORES: the number of cores used by each simulation.
   GRIDRES: the resolution in km.
   COUNTRY: the name of the country of interest.
-  OUTDIR: name of the directory where to store results:
-          this will be a sub directory of the Output directory.
 
 - Run the installer with
   bash install.sh
 
 
 
+
 SET UP
 
-Once installed, move to the 'Master' directory:
+Once installed, move to the 'Main' directory:
 
-cd Master
+cd Main
 
-Edit the 'Makefile' to alter the following variables:
-CORES : the number of cores each run will use.
-COUNTRY: the country you want to work with
-OUTDIR: the directory where executable and data should be stored.
-        This will be a sub-directory of 'Output'.
+Edit the submission scripts 'scriptfits.sh' and 'scriptruns.sh' to
+match your cluster submission engine, module requirements and syntax.
+In particular:
+
+MPIRUN  should contain the command to launch a parallel mpi job
+
+REPLICAS should be set to the number of replicas you wish to execute
+          for the parallel SMC fitting procedure (scriptfits only).
+
+
+
+Move now to the 'Scenarios' directory:
+
+cd ../Scenarios
+
+Generate a new scenarios with the command:
+
+bash makeScenarios MYNEWSCENARIO
+
+where MYNEWSCENARIO is a name of your choice for a new scenarios
+Change to the new scenario directory
+
+cd MYNEWSCENARIO
 
 Edit the 'config.py' file and alter the parameters of the country you intend
         to work with.  The 'Default' country can be used as a blueprint.
@@ -49,36 +69,32 @@ Edit the 'config.py' file and alter the parameters of the country you intend
 
 Now use the make command as follows:
 
-make prepare  # This will remove any pre-existing data in the target output directory.
-              # Use with caution.
+make write  # This will generate an executable that will generate the mobility data required
+				for the simulations
 
-make  # This will generate three executables that can be used to run specific conditions
-      # or to fit to specific data
-
+make fits   # This will generate an executable that will implement the fitting procedure
 
 
 EXECUTING
 
-Move to the chosen output directory
+Move to the 'Output' directory
 
-cd ../Output/XYZ
+cd Output
 
-where XYZ represents the name of the output directory chosen during the SET UP phase.
+Submit the fitting script following your cluster submission engine syntax.  For instance:
 
-- Multirun
-  Edit the 'scriptruns.sh' bash script with the correct execution commands for your cluster.
-  Submit
+qsub -cwd -N myscenario  scriptfits.sh
 
-- Fitting
-  Edit the 'scriptfits.sh' bash script with the correct execution commands for your cluster.
-  Specify the number of replicas (see below).
-  Submit
+OR
+
+sbatch -D . -J myscenario  scriptfits.sh
+
 
 
 
 NOTES about fitting:
 
-You can now use multiple nodes for parallel fitting by using replicas.  The number of replicas
+You can use multiple nodes for parallel fitting by using replicas.  The number of replicas
 should be an integer divisor of the number of processes.  For instance, suppose that you want
 to use 10 cluster nodes, each having 16 cores.  That gives a total of 160 processes.
 You can use 5 replicas, 10 replicas, but not 7 replicas.  For efficiency, you might want to 
