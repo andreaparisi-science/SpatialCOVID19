@@ -15,7 +15,8 @@ constexpr double NR = 0.2;
 constexpr double minLim = 90.0;
 constexpr double delta  = 0.25;
 constexpr double TIMEFRAME = 1.0;
-constexpr double REL_ERROR = 1.e-2;
+constexpr double REL_ERROR_X = 1.e-3;
+constexpr double REL_ERROR_Y = 1.e-4;
 const std::string commutingFile = "Data/UkCommuting_coarse.csv";
 const std::string country = "UK";
 
@@ -382,7 +383,7 @@ double  evaluateModel(double factor, int method)  {
 
 
 
-void  buildHistograms(const std::vector<double> &nr, double delta)  {
+void  buildHistograms(const arma::vec &nr, double delta)  {
 	std::vector<double> dataHistogram, simsHistogram;
 	double dist, dataLim = 0, simsLim = 0, maxLim;
 	std::ofstream handler = std::ofstream( "pdf.dat" );
@@ -421,7 +422,7 @@ void  buildHistograms(const std::vector<double> &nr, double delta)  {
 		for (int ii = 0; ii < maxLim; ii++)  {
 			sum += (dataHistogram[ii] - simsHistogram[ii])*(dataHistogram[ii] - simsHistogram[ii]);
 		}
-		distances[nr[0]] = std::sqrt(sum);
+		distances[nr(0)] = std::sqrt(sum);
 		std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++\n";	
 		std::cout << "Histogram distances are:\n";
 		for (auto &el: distances)  {
@@ -433,19 +434,19 @@ void  buildHistograms(const std::vector<double> &nr, double delta)  {
 
 
 
-double  buildMobility(const std::vector<double> &nr)  {
+double  buildMobility(const arma::vec &nr)  {
 	double eval, cpc;
 	double dummy = 0.0;
 	bool   caughtException = false;
 
-	std::cout << "Checking parameters [" << nr[0];
+	std::cout << "Checking parameters [" << nr(0);
 	for (int jj = 1; jj < nr.size(); jj++)  {
-		std::cout << ", " << nr[jj];
+		std::cout << ", " << nr(jj);
 	}
 	std::cout << "]\n";
 
 	for (int jj = 0; jj < nr.size(); jj++)  {
-		simStatus.setMobilityParameter(jj, nr[jj]);
+		simStatus.setMobilityParameter(jj, nr(jj));
 		//simStatus.setMobilityParameter(0, nr[0]);
 		//simStatus.setMobilityParameter(1, nr[1]);
 		//simStatus.setMobilityParameter(4, nr[2]);
@@ -485,9 +486,9 @@ double  buildMobility(const std::vector<double> &nr)  {
 		bufferData.unpack(&eval);
 		bufferData.unpack(&cpc);
 	}
-	std::cout << "Evaluated value for parameters [" << nr[0];
+	std::cout << "Evaluated value for parameters [" << nr(0);
 	for (int jj = 1; jj < nr.size(); jj++)  {
-		std::cout << ", " << nr[jj];
+		std::cout << ", " << nr(jj);
 	}
 	std::cout << "] is [" << eval << "]; ";
 	std::cout << "CPC is [" << cpc << "]\n";
@@ -499,17 +500,29 @@ double  buildMobility(const std::vector<double> &nr)  {
 
 
 
-void  constrainParams(std::vector<double> &vec)  {
-	for (int jj = 0; jj < vec.size(); jj++)  {
-		if (vec[jj] < 0)  vec[jj] = -vec[jj];
-		if (vec[jj] > 1)  vec[jj] = 2.0 - vec[jj];
+double  constrainParams(arma::vec &vv, bool &isConstrained)  {
+	isConstrained = false;
+	for (int jj = 0; jj < vv.size(); jj++)  {
+//		if (vec[jj] < 0)  vec[jj] = -vec[jj];
+		if (vv(jj) < 0)  {
+			isConstrained = true;
+			return  1.e300;
+		//if (vec[jj] > 1)  vec[kk] = 2.0 - vec[jj];
+		}
 	}
+	return 0.0;
 }
 
 
 
 
 
+
+arma::vec  __convertVectorToVec( const std::vector<double> &vv )  {
+	arma::vec yy( vv.size() );
+	for (int jj = 0; jj < vv.size(); jj++)  yy(jj) = vv[jj];
+	return yy;
+}
 
 
 
@@ -524,6 +537,7 @@ void  accessCycle( int status )  {
 	double  dist;
 	std::vector<double> dataHistogram, simsHistogram;
 	SimplexSearch searcher(1);
+	arma::vec  vstart, pt, scale;
 
 
 	switch (status)  {
@@ -558,11 +572,13 @@ void  accessCycle( int status )  {
 			nropt = 1.e300;
 			start.resize(1);
 			start[0] = simStatus.getMobilityParameter(0);
+			vstart = __convertVectorToVec( start );
 			//start[0] = simStatus.getMobilityParameter(0);
 			//start[1] = simStatus.getMobilityParameter(2);
 			//start[2] = simStatus.getMobilityParameter(3);
 			//start[1] = simStatus.getMobilityParameter(4);
-			f1 = searcher.search(buildMobility, start, REL_ERROR, 10, constrainParams, simStatus.getProcessId() == 0);
+			scale = {1.0};
+			std::tie<arma::vec, double>(pt, f1) = searcher.search(buildMobility, vstart, scale, {REL_ERROR_X, REL_ERROR_Y}, constrainParams, simStatus.getProcessId() == 0);
 //				if (simStatus.getProcessId() == 0)  {
 //					std::cout << "*** Current optimal for mobility is [" << start[0];
 //					for (int jj = 1; jj < start.size(); jj++)  {
