@@ -1,13 +1,29 @@
 
 all:
 	make counties
+	make NHSregions
+	make counties2020
 
 counties:
-	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield DEN_PROV --sortfield COD_PROV --export Shapefiles/Limiti2011_g/Prov2011_g/Prov2011_WGS.shp
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield name --sortfield code --export Shapefiles/UK_simplif_1_2011.shp
 	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_ids.asc
 	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_ids.ppm
 	mkdir -p Counties
 	mv *.dat Counties/
+
+NHSregions:
+	#deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield nhser20nm --sortfield objectid Shapefiles/NHS_ext_2020.shp
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield nhser20nm --sortfield objectid Shapefiles/NHS_ext_2020_full.shp
+	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_NHS_ids.asc
+	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_NHS_ids.ppm
+
+counties2020:
+	#deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield LAD19NM --sortfield FID --export Shapefiles/UK_2019_no_NIx.shp
+	deryaSE --extractadmins --mapfile ../Setup/${COUNTRY}_${GRIDRES}km.asc --namefield LAD19NM --sortfield FID --export Shapefiles/UK_2019.shp
+	mv outputmap.asc  ${COUNTRY}_${GRIDRES}km_2019_ids.asc
+	mv outputmap.ppm  ${COUNTRY}_${GRIDRES}km_2019_ids.ppm
+	mkdir -p Counties/2019
+	mv *.dat Counties/2019
 
 clean:
 	\rm -f *.asc
