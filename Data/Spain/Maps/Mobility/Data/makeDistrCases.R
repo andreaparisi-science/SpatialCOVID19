@@ -34,18 +34,70 @@ dat$PROEST <- as.integer(dat$PROEST)
 #nProvinces <- provcode[length(provcode)]
 #print(nProvinces)
 
+#popdata <- read.table("../../Counties/stats.dat", header=TRUE, stringsAsFactors=FALSE)
+#popdata <- popdata[ order(popdata$SortId), ]
+
+
 provnames <- read.csv("dr_EPA_2005.csv", header=TRUE)
 provnames$Void <- NULL
 colnames(provnames) <- c("Code", "Name")
 provnames$Name <- gsub("[^A-Za-z]", "_", provnames$Name)
-provnames$target <- c(5, 3, 2, 4, 7, 8, 25, 9, 11, # A, B
-	12, 13, 15, 16, 17, 1, 18, 
-	20, 21, 22, 19, 23, 24, 26,
-	28, 29, 27, 30, 31, 32, 33,
-	34, 35, 6, 36, -1, 37, 38,	# =>| Salamanca (missing Las Palmas)
-	-1, 14, 39, 40, 41, 42, 43, # =>| Teruel (missing Santa Crus de Tenerife)
-	44, 45, 46, 10, 47, 48, -1, -1) # =>| Ceuta, Melilla (excluded)
-print(provnames)
+provnames$target <- c(
+		5,	#01,Araba/Álava,
+		3,	#02,Albacete,
+		2,	#03,Alicante/Alacant,
+		4,	#04,Almería,
+		48,	#05,Ávila,
+		7,	#06,Badajoz,
+		24,	#07,"Balears, Illes",
+		8,	#08,Barcelona,
+		10,	#09,Burgos,
+		11,	#10,Cáceres,
+		12,	#11,Cádiz,
+		15,	#12,Castellón /Castelló,
+		16,	#13,Ciudad Real,
+		13,	#14,Córdoba,
+		1,	#15,"Coruña, A",
+		17,	#16,Cuenca,
+		19,	#17,Girona,
+		20,	#18,Granada,
+		21,	#19,Guadalajara,
+		18,	#20,Gipuzkoa,
+		22,	#21,Huelva,
+		23,	#22,Huesca,
+		25,	#23,Jaén,
+		27,	#24,León,
+		28,	#25,Lleida,
+		26,	#26,"Rioja, La",
+		29,	#27,Lugo,
+		31,	#28,Madrid,
+		30,	#29,Málaga,
+		32,	#30,Murcia,
+		33,	#31,Navarra,
+		34,	#32,Ourense,
+		6,	#33,Asturias,
+		35,	#34,Palencia,
+		-1,	#35,"Palmas, Las",
+		36,	#36,Pontevedra,
+		37,	#37,Salamanca,
+		-1,	#38,Santa Cruz de Tenerife,
+		14,	#39,Cantabria,
+		38,	#40,Segovia,
+		39,	#41,Sevilla,
+		40,	#42,Soria,
+		41,	#43,Tarragona,
+		42,	#44,Teruel,
+		43,	#45,Toledo,
+		44,	#46,Valencia/València,
+		45,	#47,Valladolid,
+		9,	#48,Bizkaia,
+		46,	#49,Zamora,
+		47,	#50,Zaragoza,
+		-1,	#51,Ceuta,
+		-1	#52,Melilla,
+)
+#print(provnames)
+#print(popdata)
 nProvinces <- rev(sort(provnames$target))[1]
 
 comm <- matrix( 0, nrow=nProvinces, ncol=nProvinces )
@@ -73,9 +125,11 @@ for (jj in 1:nrow(dat))  {
 #	print(dest)
 #	print("---")
 
-#	comm[orig, dest] <- comm[orig, dest] + elem$FACTOREL
-	comm[orig, dest] <- comm[orig, dest] + 1
+	comm[orig, dest] <- comm[orig, dest] + elem$FACTOREL
+#	comm[orig, dest] <- comm[orig, dest] + 1
 }
+#print(comm)
+#print(popdata)
 
 for (orig in 1:nProvinces)  {
 	for (dest in 1:nProvinces)  {

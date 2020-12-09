@@ -1,10 +1,8 @@
  
 map:
-	\rm -f lse-userdefined.*
-	\ln -s ../../../Main/Setup/lse-userdefined.cpp .
-	\ln -s ../../../Main/Setup/lse-userdefined.h .
 	deryaSE --define GRIDRES=${GRIDRES} --define COUNTRY=\"${COUNTRY}\" --define SHORTCOUNTRY=\"esp\" --define YEAR=\"2020\" --define REDUCE_FACTOR=1.0 CoV.lse
 	./runderyaSE 1
+        bash ./reduceToMainland.sh ${COUNTRY}  ${GRIDRES}
 
 part:
 	deryaSE --partitionmap --filein ${COUNTRY}_${GRIDRES}km.asc --patches ${PROCS} --connect --seed 4
