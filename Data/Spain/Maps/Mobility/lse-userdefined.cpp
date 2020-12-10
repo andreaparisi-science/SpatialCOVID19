@@ -15,8 +15,10 @@ constexpr double NR = 0.2;
 constexpr double minLim = 90.0;
 constexpr double delta  = 0.25;
 constexpr double TIMEFRAME = 1.0;
-constexpr double REL_ERROR = 1.e-2;
-
+constexpr double REL_ERROR_X = 1.e-3;
+constexpr double REL_ERROR_Y = 1.e-4;
+const std::string commutingFile = "Data/Commuting.dat";
+const std::string country = "Spain";
 
 class MobData {
 public:
@@ -40,13 +42,23 @@ public:
 void  loadAscFile(const std::string&, std::vector< std::vector<MobData> > &);
 void	  loadStoreFile(const std::string&, std::vector< std::vector<MobData> > &);
 void  loadCommutingData(const std::string&, std::vector<GroupData> &, int);
-double  evaluateModel(double factor);
+double  evaluateModel(double factor, int method);
 std::map<int, int>  buildGroups( const std::string );
 
 std::vector< std::vector<MobData> >  popMap;
 std::map<int, int>  groups;
-//std::string  strgroups = "29+36,3+23+30,15+22,38+39+41,9+10+11,13+16+21,2+7+12,8+34,1+5,40+45,17+20,46+47,18+24+25+32+33,27+43,14+19,4,28+42,31+35+37,6+26,44";
-std::string  strgroups = "";
+std::string strgroups;
+std::string strgroups_East_England  = "34+33+106+105+101+99+102+108+107+103+110+100+104+109,135+136+131+137+128+130+134+132+133+129,32+55+56,61+65+64+63+62+31,181+182+178+177+180+176+179,224+227+228+222+225+223+226";
+std::string strgroups_East_Midlands = "77+75+79+76+72+78+74+73+15,203+199+197+200+202+201+198+18,171+172+174+173+169+170+175,163+166+164+168+162+165+167+16,17,188+187+184+189+186+183+185";
+std::string strgroups_Greater_London = "326+313+306+325+315+321+323+305+312+300+298+302+311+320+314+317+322+301+299+316+304+297+309+295+319+318+324+307+303+296+308+310+294";
+std::string strgroups_NorthEast_England = "48,278+277+279+280+281,47+5+1,4+3+2";
+std::string strgroups_NorthWest_England = "49+50+6+7,67+71+69+66+70+68,258+259+260+261+262+263+264+265+266+267,160+151+159+152+156+161+154+157+155+150+158+153+9+8,268+269+270+271+272";
+std::string strgroups_SouthEast_England = "37+38+41+36+40+39,59+58+60+57+42,95+97+98+94+96+43,120+121+127+123+118+122+125+117+126+119+124+45+44,46,140+142+144+148+149+143+146+138+145+139+141+147+35,205+204+206+207+208,235+234+236+239+229+231+238+232+230+233+237,251+246+247+249+248+250+245";
+std::string strgroups_SouthWest_England = "22+24+211+213+212+210+209,23,25+114+116+111+112+115+113,30+54,93+92+90+91+89+28+29+88,81+80+82+83+86+87+84+85+27+26,53+52";
+std::string strgroups_West_Midlands = "19,51+20,214+215+216+217+218+219+220+221+21,240+241+242+243+244,282+283+284+285+286+287+288,252+253+254+255+256+257";
+std::string strgroups_Yorkshire = "276+275+273+274,293+291+290+289+292,196+192+190+193+191+194+195+14,11+10,13+12";
+std::string strgroups_Scotland = "354+355+327+334+330+337+342+350+333+341+346+353,357+352+328+329+339+358+336+331+351+356+344+345,347+348,335+338+349+332+340+343";
+std::string strgroups_Wales = "359+360+361+362+365+367+366+380+373+375+374+376+370+369+368,377+378+372+371+363+364+379";
 std::vector<GroupData> region;
 MapData  data;
 int nGroups = 0;
@@ -371,7 +383,7 @@ double  evaluateModel(double factor, int method)  {
 
 
 
-void  buildHistograms(const std::vector<double> &nr, double delta)  {
+void  buildHistograms(const arma::vec &nr, double delta)  {
 	std::vector<double> dataHistogram, simsHistogram;
 	double dist, dataLim = 0, simsLim = 0, maxLim;
 	std::ofstream handler = std::ofstream( "pdf.dat" );
@@ -410,7 +422,7 @@ void  buildHistograms(const std::vector<double> &nr, double delta)  {
 		for (int ii = 0; ii < maxLim; ii++)  {
 			sum += (dataHistogram[ii] - simsHistogram[ii])*(dataHistogram[ii] - simsHistogram[ii]);
 		}
-		distances[nr[0]] = std::sqrt(sum);
+		distances[nr(0)] = std::sqrt(sum);
 		std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++\n";	
 		std::cout << "Histogram distances are:\n";
 		for (auto &el: distances)  {
@@ -422,19 +434,19 @@ void  buildHistograms(const std::vector<double> &nr, double delta)  {
 
 
 
-double  buildMobility(const std::vector<double> &nr)  {
+double  buildMobility(const arma::vec &nr)  {
 	double eval, cpc;
 	double dummy = 0.0;
 	bool   caughtException = false;
 
-	std::cout << "Checking parameters [" << nr[0];
+	std::cout << "Checking parameters [" << nr(0);
 	for (int jj = 1; jj < nr.size(); jj++)  {
-		std::cout << ", " << nr[jj];
+		std::cout << ", " << nr(jj);
 	}
 	std::cout << "]\n";
 
 	for (int jj = 0; jj < nr.size(); jj++)  {
-		simStatus.setMobilityParameter(jj, nr[jj]);
+		simStatus.setMobilityParameter(jj, nr(jj));
 		//simStatus.setMobilityParameter(0, nr[0]);
 		//simStatus.setMobilityParameter(1, nr[1]);
 		//simStatus.setMobilityParameter(4, nr[2]);
@@ -474,9 +486,9 @@ double  buildMobility(const std::vector<double> &nr)  {
 		bufferData.unpack(&eval);
 		bufferData.unpack(&cpc);
 	}
-	std::cout << "Evaluated value for parameters [" << nr[0];
+	std::cout << "Evaluated value for parameters [" << nr(0);
 	for (int jj = 1; jj < nr.size(); jj++)  {
-		std::cout << ", " << nr[jj];
+		std::cout << ", " << nr(jj);
 	}
 	std::cout << "] is [" << eval << "]; ";
 	std::cout << "CPC is [" << cpc << "]\n";
@@ -488,52 +500,29 @@ double  buildMobility(const std::vector<double> &nr)  {
 
 
 
-void  constrainParams(std::vector<double> &vec)  {
-	for (int jj = 0; jj < vec.size(); jj++)  {
-		if (vec[jj] < 0)  vec[jj] = -vec[jj];
+double  constrainParams(arma::vec &vv, bool &isConstrained)  {
+	isConstrained = false;
+	for (int jj = 0; jj < vv.size(); jj++)  {
+//		if (vec[jj] < 0)  vec[jj] = -vec[jj];
+		if (vv(jj) < 0)  {
+			isConstrained = true;
+			return  1.e300;
 		//if (vec[jj] > 1)  vec[kk] = 2.0 - vec[jj];
+		}
 	}
+	return 0.0;
 }
 
 
-/*
-void  analyzeTripDistribution()  {
-	ifstream  handler("TripDistribution.tsv");
-	std::vector<double> xx, yy;
-	double fval, ymax, ymin, alpha, total, weightot;
-	while (true)  {
-		handler >> fval;
-		if (handler.eof())  break;
-		xx.push_back(fval);
-		handler >> fval;
-		yy.push_back(fval);
-	}
 
-	SplineInterpolator interp = SplineInterpolator(xx, yy, SPLINE_METHOD_NATURAL );
-	static int MAXLEN = 208;
-	xx.resize(MAXLEN);
-	yy.clear();
-	for (int kk = 0; kk < MAXLEN; kk++)  {
-		xx[kk] = kk+1;
-	}
-	yy = interp.interpolate(xx);
-	// Rescaling to zero
-	ymax = yy[0];
-	ymin = yy[MAXLEN-1];
-	alpha = ymax/(ymax-ymin);
-	for (int kk = 0; kk < MAXLEN; kk++)  {
-		yy[kk] = alpha*(yy[kk]-ymin);
-	}
-	// Weighted and nonweighted sum
-	for (int kk = 0; kk < MAXLEN; kk++)  {
-		total    += yy[kk];
-		weightot += yy[kk]/(kk+1);
-	}
-	std::cout << "TRIP TOTALS: " << total << " " << weightot << "\n";
+
+
+
+arma::vec  __convertVectorToVec( const std::vector<double> &vv )  {
+	arma::vec yy( vv.size() );
+	for (int jj = 0; jj < vv.size(); jj++)  yy(jj) = vv[jj];
+	return yy;
 }
-*/
-
-
 
 
 
@@ -548,15 +537,16 @@ void  accessCycle( int status )  {
 	double  dist;
 	std::vector<double> dataHistogram, simsHistogram;
 	SimplexSearch searcher(1);
+	arma::vec  vstart, pt, scale;
+
 
 	switch (status)  {
 		case CYCLE_INIT:
-			for (int jj = 1; jj <= 48; jj++)  {
-				if (jj > 1)  strgroups += ",";
-				strgroups += std::to_string(jj);
-			}
+			strgroups = strgroups_East_England + "," + strgroups_East_Midlands + "," + strgroups_Greater_London + "," + strgroups_NorthEast_England + "," + strgroups_NorthWest_England +
+							"," + strgroups_SouthEast_England + "," + strgroups_SouthWest_England + "," + strgroups_West_Midlands + "," + strgroups_Yorkshire +
+							"," + strgroups_Scotland + "," + strgroups_Wales;
 			//analyzeTripDistribution();
-			loadAscFile( std::string("../Spain_") + std::to_string(GRIDRES) + "km_ids.asc", popMap);
+			loadAscFile( std::string("../") + country + "_" + std::to_string(GRIDRES) + "km_ids.asc", popMap);
 			loadStoreFile("storage", popMap);
 			groups = buildGroups(strgroups);
 
@@ -571,7 +561,7 @@ void  accessCycle( int status )  {
 				region[ii].commutingModel.resize(nGroups+1, 0);
 			}
 
-			loadCommutingData("Data/Commuting.dat", region, nGroups);
+			loadCommutingData( commutingFile, region, nGroups);
 			bufferData.setBuffer( 2*sizeof(double), 2 );
 			break;
 
@@ -582,11 +572,13 @@ void  accessCycle( int status )  {
 			nropt = 1.e300;
 			start.resize(1);
 			start[0] = simStatus.getMobilityParameter(0);
+			vstart = __convertVectorToVec( start );
 			//start[0] = simStatus.getMobilityParameter(0);
 			//start[1] = simStatus.getMobilityParameter(2);
 			//start[2] = simStatus.getMobilityParameter(3);
 			//start[1] = simStatus.getMobilityParameter(4);
-			f1 = searcher.search(buildMobility, start, REL_ERROR, 10, constrainParams, simStatus.getProcessId() == 0);
+			scale = {1.0};
+			std::tie<arma::vec, double>(pt, f1) = searcher.search(buildMobility, vstart, scale, {REL_ERROR_X, REL_ERROR_Y}, constrainParams, simStatus.getProcessId() == 0);
 //				if (simStatus.getProcessId() == 0)  {
 //					std::cout << "*** Current optimal for mobility is [" << start[0];
 //					for (int jj = 1; jj < start.size(); jj++)  {
