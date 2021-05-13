@@ -3,9 +3,9 @@ static  std::string  contactMatrixFile = "../../../../Data/Spain/Contacts/SpainC
 static  std::string  ageGroupEsriFile  = "../../../../Data/Spain/Setup/Spain_%dkm_%d.asc";
 static  std::string  identifiersFile   = "../../../../Data/Spain/Maps/Spain_%dkm_reg.asc";
 static  std::string  timeseriesFile    = "../../../../Data/Spain/Spain_timeseries.dat";
-static  std::string  fileDeathsByAge   = "../../../../Data/Spain/Private/deathsByAge.dat";
+static  std::string  fileDeathsByAge   = "../../../../Data/Spain/Shared/deathsByAge.dat";
 
-static  std::string  importedCasesFile = "../../../../Data/Spain/Private/distrCases_byId.dat";
+static  std::string  importedCasesFile = "../../../../Data/Spain/Shared/distrCases_byId.dat";
 
 Intervention  nationwideLockdown;
 

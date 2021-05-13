@@ -1,14 +1,14 @@
 // Relevant files loaded at execution time
 static  std::string  contactMatrixFile    = "../../../../Data/UK/Contacts/UKContactMatrix";
 static  std::string  ageGroupEsriFile     = "../../../../Data/UK/Setup/UK_%dkm_%d.asc";
-static  std::string  identifiers_NHS_File = "../../../../Data/UK/Maps/UK_%dkm_NHS_ids.asc";
+//static  std::string  identifiers_NHS_File = "../../../../Data/UK/Maps/UK_%dkm_NHS_ids.asc";
 static  std::string  identifiers_LA_File  = "../../../../Data/UK/Maps/UK_%dkm_2019_ids.asc";
 static  std::string  timeseriesFile       = "../../../../Data/UK/UK_timeseries.dat";
 // TO BE MOFIDIED APPROPRIATELY
-static  std::string  fileDeathsByAge      = "../../../../Data/Italy/Private/deathsByAge.dat";
+static  std::string  fileDeathsByAge      = "../../../../Data/Italy/Shared/deathsByAge.dat";
 
-static  std::string  imported_LA_File     = "../../../../Data/UK/Private/distrCases_byId.dat";
-static  std::string  imported_NHS_File    = "../../../../Data/UK/Private/distrCases_byRegion_byAge.dat";
+static  std::string  imported_LA_File     = "../../../../Data/UK/Shared/distrCases_byId.dat";
+//static  std::string  imported_NHS_File    = "../../../../Data/UK/Shared/distrCases_byRegion_byAge.dat";
 
 Intervention  nationwideLockdown;
 
@@ -77,7 +77,8 @@ std::vector< std::vector<int> >    idsMap_LA, idsMap_NHS, idsMap;
 std::vector< std::vector<double> > ageIdsPop_LA, ageIdsPop_NHS;
 std::vector<double>  idsPop_LA, idsPop_NHS;
 int   maxId_LA = 0, maxId_NHS = 0, maxId = 0;
-void  loadIdentifiers( const std::string datafile_LA, const std::string datafile_NHS )  {
+//void  loadIdentifiers( const std::string datafile_LA, const std::string datafile_NHS )  {
+void  loadIdentifiers( const std::string datafile_LA )  {
 	char ch_filename[256];
 	std::string  filename;
 	int ids, nAgeGroups = groups[ groups.size()-1 ] + 1;
@@ -108,7 +109,7 @@ void  loadIdentifiers( const std::string datafile_LA, const std::string datafile
 			}
 		}
 	}
-
+/*
 	sprintf( ch_filename, datafile_NHS.c_str(), GRIDRES );
 	filename = std::string( ch_filename );
 	EsriReader  reader_NHS(filename);
@@ -134,7 +135,7 @@ void  loadIdentifiers( const std::string datafile_LA, const std::string datafile
 				idsPop_NHS[ ids ] += baseMap[ age ][ii][jj];
 			}
 		}
-	}
+	}*/
 	idsMap = idsMap_LA;
 	maxId = maxId_LA;
 }
@@ -173,7 +174,7 @@ int     evalLocally()  {
 
 
 std::vector< std::vector<double> >  importProbs_byLA;
-std::vector< std::vector<double> >  importProbs_byNHS;
+//std::vector< std::vector<double> >  importProbs_byNHS;
 std::vector< std::vector<double> >  importProbs;
 void  loadImportProbs()  {
 	int nAgeGroups = groups[ groups.size()-1 ] + 1;
@@ -184,10 +185,10 @@ void  loadImportProbs()  {
 	for (int jj = 1; jj <= maxId_LA; jj++)  {
 		importProbs_byLA[jj].resize( nAgeGroups, 0.0 );
 	}
-	importProbs_byNHS.resize( maxId_NHS+1 );
-	for (int jj = 1; jj <= maxId_NHS; jj++)  {
-		importProbs_byNHS[jj].resize( nAgeGroups, 0.0 );
-	}
+//	importProbs_byNHS.resize( maxId_NHS+1 );
+//	for (int jj = 1; jj <= maxId_NHS; jj++)  {
+//		importProbs_byNHS[jj].resize( nAgeGroups, 0.0 );
+//	}
 	importProbs.resize( maxId+1 );
 	for (int jj = 1; jj <= maxId; jj++)  {
 		importProbs[jj].resize( nAgeGroups, 0.0 );
@@ -206,7 +207,7 @@ void  loadImportProbs()  {
 	}
 	instream_LA.close();
 
-	std::ifstream  instream_NHS( imported_NHS_File );
+/*	std::ifstream  instream_NHS( imported_NHS_File );
 	while (instream_NHS.good())  {
 		instream_NHS >> ids;
 		instream_NHS >> age;
@@ -231,16 +232,17 @@ void  loadImportProbs()  {
 		importProbs_byNHS[8][age] /= ageIdsPop_NHS[age][8];
 		importProbs_byNHS[8][age] *= (idsPop_NHS[8]/extPop);
 	}
-
+*/
 	// This is to set up the initial condition
 	params.iomega = 0;
 	for (int xx = 0; xx < simStatus.getMaxX(); xx++)  {
 		for (int yy = 0; yy < simStatus.getMaxY(); yy++)  {
 			if (popMap[xx][yy] > 0)  {
 				int ids_LA  = idsMap_LA[xx][yy];
-				int ids_NHS = idsMap_NHS[xx][yy];
-				importProbs[ids_LA][age] = importProbs_byLA[ids_LA][age] * importProbs_byNHS[ids_NHS][age];
-				params.iomega = std::max(params.iomega, importProbs_byLA[ids_LA][age] * importProbs_byNHS[ids_NHS][age]);
+//				int ids_NHS = idsMap_NHS[xx][yy];
+//				importProbs[ids_LA][age] = importProbs_byLA[ids_LA][age] * importProbs_byNHS[ids_NHS][age];
+//				params.iomega = std::max(params.iomega, importProbs_byLA[ids_LA][age] * importProbs_byNHS[ids_NHS][age]);
+				params.iomega = std::max(params.iomega, importProbs_byLA[ids_LA][age]);
 			}
 		}
 	}
@@ -271,11 +273,12 @@ bool  importedCase()  {
 	int xx  = simStatus.getX() % simStatus.getMaxX();
 	int yy  = simStatus.getY();
 	int ids_LA  = idsMap_LA[xx][yy];
-	int ids_NHS = idsMap_NHS[xx][yy];
+//	int ids_NHS = idsMap_NHS[xx][yy];
 	if (ids_LA == 0)   simStatus.abort("IDS_LA  is ZERO");
-	if (ids_NHS == 0)  simStatus.abort("IDS_NHS is ZERO");
+//	if (ids_NHS == 0)  simStatus.abort("IDS_NHS is ZERO");
 //std::cout << ids << " " << age << " " << maxId_2019 << " " << "\n" << std::flush;
-	if (RNG->get() < importProbs_byLA[ids_LA][age] * importProbs_byNHS[ids_NHS][age])  {
+//	if (RNG->get() < importProbs_byLA[ids_LA][age] * importProbs_byNHS[ids_NHS][age])  {
+	if (RNG->get() < importProbs_byLA[ids_LA][age])  {
 		return true;
 	}
 	return false;
@@ -302,7 +305,8 @@ inline  double getMobilityDuration(double dist)  {
 
 
 inline  void  initCountrySpecific()  {
-	loadIdentifiers( identifiers_LA_File, identifiers_NHS_File );
+//	loadIdentifiers( identifiers_LA_File, identifiers_NHS_File );
+	loadIdentifiers( identifiers_LA_File );
 	loadImportProbs();
 }
 

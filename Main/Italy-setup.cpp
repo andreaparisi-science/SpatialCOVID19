@@ -3,9 +3,9 @@ static  std::string  contactMatrixFile = "../../../../Data/Italy/Contacts/ItalyC
 static  std::string  ageGroupEsriFile  = "../../../../Data/Italy/Setup/Italy_%dkm_%d.asc";
 static  std::string  identifiersFile   = "../../../../Data/Italy/Maps/Italy_%dkm_ids.asc";
 static  std::string  timeseriesFile    = "../../../../Data/Italy/Italy_timeseries.dat";
-static  std::string  fileDeathsByAge   = "../../../../Data/Italy/Private/deathsByAge.dat";
+static  std::string  fileDeathsByAge   = "../../../../Data/Italy/Shared/deathsByAge.dat";
 
-static  std::string  importedCasesFile = "../../../../Data/Italy/Private/distrCases_byId.dat";
+static  std::string  importedCasesFile = "../../../../Data/Italy/Shared/distrCases_byId.dat";
 // ITALY DATA
 //
 // 16th Feb first case (when the 1st detected appeared in hospital the first time)
